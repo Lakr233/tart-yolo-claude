@@ -27,8 +27,6 @@ else
     tart pull "$TART_IMAGE"
 fi
 
-cd "$(dirname "$0")"
-
 echo "[*] using runner image name: $RUNNER_IMAGE_NAME"
 tart clone "$TART_IMAGE" "$RUNNER_IMAGE_NAME"
 
