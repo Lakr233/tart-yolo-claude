@@ -107,7 +107,7 @@ for CONFIGURATION in "${CONFIGURATIONS[@]}"; do
 done
 
 echo "[*] installing claude..."
-execute_runner_command "brew install --cask claude"
+execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
 
 echo "[*] starting yolo-claude..."
 RUNNER_YOLO_COMMAND=(
