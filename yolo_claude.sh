@@ -37,6 +37,7 @@ function cleanup {
     if [ "$CLEANUP_DONE" = false ]; then
         echo "[*] cleaning up..."
         tart stop "$RUNNER_IMAGE_NAME" || true
+        wait
         tart delete "$RUNNER_IMAGE_NAME" || true
         CLEANUP_DONE=true
     fi
@@ -53,6 +54,7 @@ function execute_runner_command() {
     sshpass -p "$RUNNER_PASSWORD" \
         ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -t \
         "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
 }
 function execute_runner_upload() {
