@@ -3,7 +3,7 @@
 set -euo pipefail
 
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
-RUNNER_IMAGE_NAME="yolo-claude-runner-${RANDOM}"
+RUNNER_IMAGE_NAME="yolo-codex-runner-${RANDOM}"
 RUNNER_USERNAME="admin"
 RUNNER_PASSWORD="admin"
 RUNNER_IP=""
@@ -98,30 +98,41 @@ done
 echo "[*] ensuring ~/projects points to mounted directory..."
 execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
 
-echo "[*] uploading claude configuration..."
-CONFIGURATIONS=(
-    "${HOME}/.claude"
-    "${HOME}/.claude.json"
+echo "[*] uploading codex configuration..."
+CODEX_CONFIGURATIONS=(
+    "${HOME}/.codex"
+    "${HOME}/.codex.json"
 )
-for CONFIGURATION in "${CONFIGURATIONS[@]}"; do
+for CONFIGURATION in "${CODEX_CONFIGURATIONS[@]}"; do
     if [ -e "$CONFIGURATION" ]; then
         echo "[*] found configuration: $CONFIGURATION"
         execute_runner_upload "$CONFIGURATION" "/Users/$RUNNER_USERNAME/"
     fi
 done
 
-echo "[*] installing claude..."
-execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
+echo "[*] provisioning codex config.toml..."
+CODEX_CONFIG_FILE=$(mktemp)
+cat <<'EOF' > "$CODEX_CONFIG_FILE"
+ask_for_approval = "never"
+sandbox = "workspace-write"
+skip_git_repo_check = true
+EOF
+execute_runner_command "mkdir -p ~/.config/codex"
+execute_runner_upload "$CODEX_CONFIG_FILE" "/Users/$RUNNER_USERNAME/.config/codex/config.toml"
+rm "$CODEX_CONFIG_FILE"
 
-echo "[*] starting yolo-claude..."
-RUNNER_YOLO_COMMAND=(
+echo "[*] installing codex..."
+execute_runner_command "brew install npm && npm install -g @openai/codex-cli"
+
+echo "[*] starting yolo-codex..."
+RUNNER_CODEX_COMMAND=(
     "cd '$RUNNER_PROJECT_MOUNT'" # change to the mounted directory
-    "claude --dangerously-skip-permissions"
+    "codex"
 )
-RUNNER_YOLO_FULL_COMMAND=""
-for CMD_PART in "${RUNNER_YOLO_COMMAND[@]}"; do
-    RUNNER_YOLO_FULL_COMMAND="${RUNNER_YOLO_FULL_COMMAND} && ${CMD_PART}"
+RUNNER_CODEX_FULL_COMMAND=""
+for CMD_PART in "${RUNNER_CODEX_COMMAND[@]}"; do
+    RUNNER_CODEX_FULL_COMMAND="${RUNNER_CODEX_FULL_COMMAND} && ${CMD_PART}"
 done
-RUNNER_YOLO_FULL_COMMAND="${RUNNER_YOLO_FULL_COMMAND:4}" # remove leading ' && '
-echo "[*] executing: $RUNNER_YOLO_FULL_COMMAND"
-execute_runner_command "$RUNNER_YOLO_FULL_COMMAND"
+RUNNER_CODEX_FULL_COMMAND="${RUNNER_CODEX_FULL_COMMAND:4}" # remove leading ' && '
+echo "[*] executing: $RUNNER_CODEX_FULL_COMMAND"
+execute_runner_command "$RUNNER_CODEX_FULL_COMMAND"
