@@ -122,7 +122,7 @@ execute_runner_upload "$CODEX_CONFIG_FILE" "/Users/$RUNNER_USERNAME/.config/code
 rm "$CODEX_CONFIG_FILE"
 
 echo "[*] installing codex..."
-execute_runner_command "brew install npm && npm install -g @openai/codex-cli"
+execute_runner_command "brew install codex"
 
 echo "[*] starting yolo-codex..."
 RUNNER_CODEX_COMMAND=(
