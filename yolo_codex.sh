@@ -112,17 +112,6 @@ for CONFIGURATION in "${CODEX_CONFIGURATIONS[@]}"; do
     fi
 done
 
-echo "[*] provisioning codex config.toml..."
-CODEX_CONFIG_FILE=$(mktemp)
-cat <<'EOF' > "$CODEX_CONFIG_FILE"
-ask_for_approval = "never"
-sandbox = "workspace-write"
-skip_git_repo_check = true
-EOF
-execute_runner_command "mkdir -p ~/.config/codex"
-execute_runner_upload "$CODEX_CONFIG_FILE" "/Users/$RUNNER_USERNAME/.config/codex/config.toml"
-rm "$CODEX_CONFIG_FILE"
-
 echo "[*] installing codex..."
 execute_runner_command "brew install codex"
 
@@ -134,25 +123,7 @@ for ENV_KEY in $(printenv | cut -d= -f1); do
     fi
 done
 
-echo "[*] granting permission to codex..."
-RUNNER_CODEX_PROJECT_CONFIG_CONTENT=(
-    "[projects.\"$RUNNER_PROJECT_MOUNT\"]"
-    "trust_level = \"trusted\""
-)
-execute_runner_command "echo '' >> ~/.codex/config.toml"
-for LINE in "${RUNNER_CODEX_PROJECT_CONFIG_CONTENT[@]}"; do
-    execute_runner_command "echo '$LINE' >> ~/.codex/config.toml"
-done
-
 echo "[*] starting yolo-codex..."
-RUNNER_CODEX_COMMAND=(
-    "cd '$RUNNER_PROJECT_MOUNT'" # change to the mounted directory
-    "codex"
-)
-RUNNER_CODEX_FULL_COMMAND=""
-for CMD_PART in "${RUNNER_CODEX_COMMAND[@]}"; do
-    RUNNER_CODEX_FULL_COMMAND="${RUNNER_CODEX_FULL_COMMAND} && ${CMD_PART}"
-done
-RUNNER_CODEX_FULL_COMMAND="${RUNNER_CODEX_FULL_COMMAND:4}" # remove leading ' && '
-echo "[*] executing: $RUNNER_CODEX_FULL_COMMAND"
-execute_runner_command "$RUNNER_CODEX_FULL_COMMAND"
+RUNNER_CODEX_COMMAND="cd \"~/projects\" && codex"
+echo "[*] executing: $RUNNER_CODEX_COMMAND"
+execute_runner_command "$RUNNER_CODEX_COMMAND"

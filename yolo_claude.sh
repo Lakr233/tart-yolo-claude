@@ -116,14 +116,6 @@ echo "[*] installing claude..."
 execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
 
 echo "[*] starting yolo-claude..."
-RUNNER_YOLO_COMMAND=(
-    "cd '$RUNNER_PROJECT_MOUNT'" # change to the mounted directory
-    "claude --dangerously-skip-permissions"
-)
-RUNNER_YOLO_FULL_COMMAND=""
-for CMD_PART in "${RUNNER_YOLO_COMMAND[@]}"; do
-    RUNNER_YOLO_FULL_COMMAND="${RUNNER_YOLO_FULL_COMMAND} && ${CMD_PART}"
-done
-RUNNER_YOLO_FULL_COMMAND="${RUNNER_YOLO_FULL_COMMAND:4}" # remove leading ' && '
-echo "[*] executing: $RUNNER_YOLO_FULL_COMMAND"
-execute_runner_command "$RUNNER_YOLO_FULL_COMMAND"
+RUNNER_YOLO_COMMAND="cd \"~/projects\" && claude --dangerously-skip-permissions"
+echo "[*] executing: $RUNNER_YOLO_COMMAND"
+execute_runner_command "$RUNNER_YOLO_COMMAND"
