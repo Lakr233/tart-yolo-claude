@@ -53,6 +53,7 @@ function execute_runner_command() {
     sshpass -p "$RUNNER_PASSWORD" \
         ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o PreferredAuthentications=password \
         -t \
         "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
 }
@@ -62,6 +63,7 @@ function execute_runner_upload() {
     sshpass -p "$RUNNER_PASSWORD" \
         scp -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o PreferredAuthentications=password \
         -r "$SRC" \
         "$RUNNER_USERNAME@$RUNNER_IP:$DEST"
 }
