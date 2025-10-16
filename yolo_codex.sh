@@ -138,8 +138,6 @@ echo "[*] granting permission to codex..."
 RUNNER_CODEX_PROJECT_CONFIG_CONTENT=(
     "[projects.\"$RUNNER_PROJECT_MOUNT\"]"
     "trust_level = \"trusted\""
-    ""
-    "approval_policy = never"
 )
 execute_runner_command "echo '' >> ~/.codex/config.toml"
 for LINE in "${RUNNER_CODEX_PROJECT_CONFIG_CONTENT[@]}"; do
