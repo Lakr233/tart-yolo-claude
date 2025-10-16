@@ -124,6 +124,6 @@ for ENV_KEY in $(printenv | cut -d= -f1); do
 done
 
 echo "[*] starting yolo-codex..."
-RUNNER_CODEX_COMMAND="cd \"~/projects\" && codex"
+RUNNER_CODEX_COMMAND="cd ~/projects && codex"
 echo "[*] executing: $RUNNER_CODEX_COMMAND"
 execute_runner_command "$RUNNER_CODEX_COMMAND"

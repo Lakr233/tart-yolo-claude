@@ -116,6 +116,6 @@ echo "[*] installing claude..."
 execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
 
 echo "[*] starting yolo-claude..."
-RUNNER_YOLO_COMMAND="cd \"~/projects\" && claude --dangerously-skip-permissions"
+RUNNER_YOLO_COMMAND="cd ~/projects && claude --dangerously-skip-permissions"
 echo "[*] executing: $RUNNER_YOLO_COMMAND"
 execute_runner_command "$RUNNER_YOLO_COMMAND"
