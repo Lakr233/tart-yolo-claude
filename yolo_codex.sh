@@ -124,6 +124,26 @@ rm "$CODEX_CONFIG_FILE"
 echo "[*] installing codex..."
 execute_runner_command "brew install codex"
 
+for ENV_KEY in $(printenv | cut -d= -f1); do
+    if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
+        ENV_VALUE=$(printenv "$ENV_KEY")
+        echo "[*] adding environment variable $ENV_KEY to runner"
+        execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
+    fi
+done
+
+echo "[*] granting permission to codex..."
+RUNNER_CODEX_PROJECT_CONFIG_CONTENT=(
+    "[projects.\"$RUNNER_PROJECT_MOUNT\"]"
+    "trust_level = \"trusted\""
+    ""
+    "approval_policy = never"
+)
+execute_runner_command "echo '' >> ~/.codex/config.toml"
+for LINE in "${RUNNER_CODEX_PROJECT_CONFIG_CONTENT[@]}"; do
+    execute_runner_command "echo '$LINE' >> ~/.codex/config.toml"
+done
+
 echo "[*] starting yolo-codex..."
 RUNNER_CODEX_COMMAND=(
     "cd '$RUNNER_PROJECT_MOUNT'" # change to the mounted directory
