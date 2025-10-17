@@ -10,3 +10,8 @@ url = "https://openrouter.ai/api/v1/key"
 headers = {"Authorization": f"Bearer {token}"}
 response = requests.get(url, headers=headers)
 print(json.dumps(response.json(), indent=4))
+
+print("")
+print("===================================")
+print(f"💸💸💸 ${response.json()['data']['usage']} 💸💸💸")
+print("===================================")
