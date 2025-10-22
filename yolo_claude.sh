@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+DROP_TO_SHELL=false
+if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
+    DROP_TO_SHELL=true
+fi
+
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
 RUNNER_IMAGE_NAME="yolo-claude-runner-${RANDOM}"
 RUNNER_USERNAME="admin"
@@ -112,10 +117,17 @@ for CONFIGURATION in "${CONFIGURATIONS[@]}"; do
     fi
 done
 
-echo "[*] installing claude..."
-execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
+if [ "$DROP_TO_SHELL" = true ]; then
+    echo "[*] dropping to interactive shell..."
+    RUNNER_YOLO_COMMAND="cd ~/projects && exec zsh -l"
+    echo "[*] executing: $RUNNER_YOLO_COMMAND"
+    execute_runner_command "$RUNNER_YOLO_COMMAND"
+else
+    echo "[*] installing claude..."
+    execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
 
-echo "[*] starting yolo-claude..."
-RUNNER_YOLO_COMMAND="cd ~/projects && claude --dangerously-skip-permissions"
-echo "[*] executing: $RUNNER_YOLO_COMMAND"
-execute_runner_command "$RUNNER_YOLO_COMMAND"
+    echo "[*] starting yolo-claude..."
+    RUNNER_YOLO_COMMAND="cd ~/projects && claude --dangerously-skip-permissions"
+    echo "[*] executing: $RUNNER_YOLO_COMMAND"
+    execute_runner_command "$RUNNER_YOLO_COMMAND"
+fi

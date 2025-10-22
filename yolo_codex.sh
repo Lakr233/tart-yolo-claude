@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+DROP_TO_SHELL=false
+if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
+    DROP_TO_SHELL=true
+fi
+
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
 RUNNER_IMAGE_NAME="yolo-codex-runner-${RANDOM}"
 RUNNER_USERNAME="admin"
@@ -112,18 +117,25 @@ for CONFIGURATION in "${CODEX_CONFIGURATIONS[@]}"; do
     fi
 done
 
-echo "[*] installing codex..."
-execute_runner_command "brew install codex"
+if [ "$DROP_TO_SHELL" = true ]; then
+    echo "[*] dropping to interactive shell..."
+    RUNNER_CODEX_COMMAND="cd ~/projects && exec zsh -l"
+    echo "[*] executing: $RUNNER_CODEX_COMMAND"
+    execute_runner_command "$RUNNER_CODEX_COMMAND"
+else
+    echo "[*] installing codex..."
+    execute_runner_command "brew install codex"
 
-for ENV_KEY in $(printenv | cut -d= -f1); do
-    if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
-        ENV_VALUE=$(printenv "$ENV_KEY")
-        echo "[*] adding environment variable $ENV_KEY to runner"
-        execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
-    fi
-done
+    for ENV_KEY in $(printenv | cut -d= -f1); do
+        if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
+            ENV_VALUE=$(printenv "$ENV_KEY")
+            echo "[*] adding environment variable $ENV_KEY to runner"
+            execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
+        fi
+    done
 
-echo "[*] starting yolo-codex..."
-RUNNER_CODEX_COMMAND="cd ~/projects && codex"
-echo "[*] executing: $RUNNER_CODEX_COMMAND"
-execute_runner_command "$RUNNER_CODEX_COMMAND"
+    echo "[*] starting yolo-codex..."
+    RUNNER_CODEX_COMMAND="cd ~/projects && codex"
+    echo "[*] executing: $RUNNER_CODEX_COMMAND"
+    execute_runner_command "$RUNNER_CODEX_COMMAND"
+fi
