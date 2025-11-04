@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-BOOT_COMMAND=""
-MOUNT_PROJECT="$(pwd)"
+: ${BOOT_COMMAND:=""}
+: ${MOUNT_PROJECT:="$(pwd)"}
 
 while [[ $# -gt 0 ]]; do
     case $1 in
