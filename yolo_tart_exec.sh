@@ -120,7 +120,7 @@ setup_api_keys() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "[*] yolo_vm_run executed directly"
+    echo "[*] yolo_tart_exec executed directly"
 else
-    echo "[*] yolo_vm_run sourced"
+    echo "[*] yolo_tart_exec sourced"
 fi

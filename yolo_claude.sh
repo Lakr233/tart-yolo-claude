@@ -8,7 +8,7 @@ if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
 fi
 
 # Source the VM runner script
-source "$(dirname "$0")/yolo_vm_run.sh"
+source "$(dirname "$0")/yolo_tart_exec.sh"
 
 # Configure specific settings for yolo_claude
 TART_IMAGE="tart_yolo_base"

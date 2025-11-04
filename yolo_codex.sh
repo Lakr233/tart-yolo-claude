@@ -7,7 +7,7 @@ if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
     DROP_TO_SHELL=true
 fi
 
-source "$(dirname "$0")/yolo_vm_run.sh"
+source "$(dirname "$0")/yolo_tart_exec.sh"
 TART_IMAGE="tart_yolo_base"
 RUNNER_IMAGE_NAME="yolo-codex-runner-${RANDOM}"
 

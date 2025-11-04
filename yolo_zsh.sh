@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname "$0")/yolo_vm_run.sh"
+source "$(dirname "$0")/yolo_tart_exec.sh"
 
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
 RUNNER_IMAGE_NAME="yolo-zsh-runner-${RANDOM}"
