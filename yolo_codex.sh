@@ -2,41 +2,34 @@
 
 set -euo pipefail
 
-DROP_TO_SHELL=false
-if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
-    DROP_TO_SHELL=true
-fi
+export TART_IMAGE="tart_yolo_base"
+export RUNNER_IMAGE_NAME="yolo-codex-runner-${RANDOM}"
+export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
 
 source "$(dirname "$0")/yolo_tart_exec.sh"
-TART_IMAGE="tart_yolo_base"
-RUNNER_IMAGE_NAME="yolo-codex-runner-${RANDOM}"
 
-check_dependencies
-prepare_image
-setup_cleanup_traps
-start_vm
+vm_bootstrap() {
+    echo "[*] uploading codex configuration..."
+    CODEX_CONFIGURATIONS=(
+        "${HOME}/.codex"
+        "${HOME}/.codex.json"
+    )
+    for CONFIGURATION in "${CODEX_CONFIGURATIONS[@]}"; do
+        if [ -e "$CONFIGURATION" ]; then
+            echo "[*] found configuration: $CONFIGURATION"
+            execute_runner_upload "$CONFIGURATION" "/Users/$RUNNER_USERNAME/"
+        fi
+    done
 
-echo "[*] uploading codex configuration..."
-CODEX_CONFIGURATIONS=(
-    "${HOME}/.codex"
-    "${HOME}/.codex.json"
-)
-for CONFIGURATION in "${CODEX_CONFIGURATIONS[@]}"; do
-    if [ -e "$CONFIGURATION" ]; then
-        echo "[*] found configuration: $CONFIGURATION"
-        execute_runner_upload "$CONFIGURATION" "/Users/$RUNNER_USERNAME/"
-    fi
-done
+    for ENV_KEY in $(printenv | cut -d= -f1); do
+        if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
+            ENV_VALUE=$(printenv "$ENV_KEY")
+            echo "[*] adding environment variable $ENV_KEY to runner"
+            execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
+        fi
+    done
+}
 
-if [ "$DROP_TO_SHELL" = true ]; then
-    echo "[*] dropping to interactive shell..."
-    RUNNER_CODEX_COMMAND="cd ~/projects && exec zsh -l"
-    echo "[*] executing: $RUNNER_CODEX_COMMAND"
-    execute_runner_command "$RUNNER_CODEX_COMMAND"
-else
-    setup_api_keys
-    echo "[*] starting yolo-codex..."
-    RUNNER_CODEX_COMMAND="cd ~/projects && codex"
-    echo "[*] executing: $RUNNER_CODEX_COMMAND"
-    execute_runner_command "$RUNNER_CODEX_COMMAND"
-fi
+export BOOT_COMMAND="cd ~/projects && codex"
+
+source "$(dirname "$0")/yolo_zsh.sh" 

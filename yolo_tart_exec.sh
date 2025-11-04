@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-TART_IMAGE="${TART_IMAGE:-ghcr.io/cirruslabs/macos-tahoe-xcode:latest}"
-RUNNER_IMAGE_NAME="${RUNNER_IMAGE_NAME:-yolo-runner-${RANDOM}}"
-RUNNER_USERNAME="admin"
-RUNNER_PASSWORD="admin"
-RUNNER_IP=""
-RUNNER_PROJECT_MOUNT="/Volumes/My Shared Files/project"
+: ${TART_IMAGE:="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"}
+: ${RUNNER_IMAGE_NAME:="yolo-runner-${RANDOM}"}
+: ${RUNNER_USERNAME:="admin"}
+: ${RUNNER_PASSWORD:="admin"}
+: ${RUNNER_IP:=""}
+: ${RUNNER_PROJECT_MOUNT:="/Volumes/My Shared Files/project"}
 
 check_dependencies() {
     if ! command -v tart &> /dev/null; then
@@ -44,14 +44,6 @@ function cleanup {
     fi
 }
 
-setup_cleanup_traps() {
-    trap cleanup EXIT
-    trap cleanup INT
-    trap cleanup TERM
-    trap cleanup HUP
-    trap cleanup ERR
-}
-
 function execute_runner_command() {
     local CMD="$1"
     echo "[*] executing on runner: $CMD"
@@ -76,16 +68,16 @@ function execute_runner_upload() {
 }
 
 start_vm() {
-    echo "[*] starting runner image, mounting current dir $(pwd)..."
+    local MOUNT_PATH="${MOUNT_DIR:-$(pwd)}"
+    echo "[*] starting runner image, mounting dir $MOUNT_PATH..."
 
-    # Check if VM exists before trying to start it
     if ! tart list | grep -q "$RUNNER_IMAGE_NAME"; then
         echo "[-] Error: Runner VM '$RUNNER_IMAGE_NAME' does not exist"
         exit 1
     fi
 
     tart run "$RUNNER_IMAGE_NAME" \
-        --dir=project:$(pwd) \
+        --dir=project:"$MOUNT_PATH" \
         --no-graphics \
         --no-audio \
         --no-clipboard \
@@ -126,19 +118,3 @@ start_vm() {
     echo "[*] ensuring ~/projects points to mounted directory..."
     execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
 }
-
-setup_api_keys() {
-    for ENV_KEY in $(printenv | cut -d= -f1); do
-        if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
-            ENV_VALUE=$(printenv "$ENV_KEY")
-            echo "[*] adding environment variable $ENV_KEY to runner"
-            execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
-        fi
-    done
-}
-
-if [[ "${(%):-%x}" == "$0" ]]; then
-    echo "[*] yolo_tart_exec executed directly"
-else
-    echo "[*] yolo_tart_exec sourced"
-fi

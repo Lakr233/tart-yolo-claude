@@ -8,7 +8,6 @@ RUNNER_USERNAME="admin"
 RUNNER_PASSWORD="admin"
 RUNNER_IP=""
 
-
 check_dependencies() {
     if ! command -v tart &> /dev/null; then
         echo "[-] tart could not be found"
@@ -64,11 +63,14 @@ function execute_vm_command() {
 start_vm() {
     echo "[*] starting vm for preparation..."
 
-    tart run "$PREPARED_IMAGE_NAME" \
-        --no-graphics \
-        --no-audio \
-        --no-clipboard \
-        &
+    TART_PARMS=()
+    if [ -n "${MOUNT_PROJECT:-}" ] && [ -d "$MOUNT_PROJECT" ]; then
+        echo "[*] mounting project directory: $MOUNT_PROJECT"
+        TART_PARMS+=("--dir=project:$MOUNT_PROJECT")
+    fi
+    TART_PARMS+=("--no-graphics" "--no-audio" "--no-clipboard")
+
+    tart run "$PREPARED_IMAGE_NAME" "${TART_PARMS[@]}" &
 
     echo "[*] waiting for vm to start..."
     RUNNER_BOOT_ATTEMPTS=0
