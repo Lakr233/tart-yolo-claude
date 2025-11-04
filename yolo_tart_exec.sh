@@ -38,7 +38,7 @@ function cleanup {
     if [ "$CLEANUP_DONE" = false ]; then
         echo "[*] cleaning up..."
         tart stop "$RUNNER_IMAGE_NAME" || true
-        wait
+        sleep 1
         tart delete "$RUNNER_IMAGE_NAME" || true
         CLEANUP_DONE=true
     fi
