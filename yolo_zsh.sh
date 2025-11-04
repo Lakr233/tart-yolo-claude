@@ -33,14 +33,12 @@ check_dependencies
 prepare_image
 start_vm
 
+trap cleanup EXIT INT TERM HUP ERR
+
 if declare -f vm_bootstrap > /dev/null; then
     echo "[*] running vm_bootstrap function..."
     vm_bootstrap
 fi
-
-trap cleanup EXIT
-trap cleanup INT
-trap cleanup TERM
 
 if [ -z "$BOOT_COMMAND" ]; then
     echo "[*] dropping into interactive zsh session..."
