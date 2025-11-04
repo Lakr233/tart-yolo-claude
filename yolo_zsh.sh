@@ -33,9 +33,7 @@ check_dependencies
 prepare_image
 start_vm
 
-echo "[*] setting up cleanup traps..."
 setup_cleanup_traps() {
-    trap cleanup EXIT
     trap cleanup INT
     trap cleanup TERM
 }
@@ -55,3 +53,4 @@ else
 fi
 
 echo "[*] session exited, cleaning up..."
+cleanup
