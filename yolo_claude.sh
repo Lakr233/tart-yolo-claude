@@ -7,103 +7,18 @@ if [[ "$#" -gt 0 ]] && [[ "$1" == "--drop-to-shell" ]]; then
     DROP_TO_SHELL=true
 fi
 
-TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
+# Source the VM runner script
+source "$(dirname "$0")/yolo_vm_run.sh"
+
+# Configure specific settings for yolo_claude
+TART_IMAGE="tart_yolo_base"
 RUNNER_IMAGE_NAME="yolo-claude-runner-${RANDOM}"
-RUNNER_USERNAME="admin"
-RUNNER_PASSWORD="admin"
-RUNNER_IP=""
-RUNNER_PROJECT_MOUNT="/Volumes/My Shared Files/project"
 
-if ! command -v tart &> /dev/null
-then
-    echo "[-] tart could not be found"
-    exit 1
-fi
-
-if ! command -v sshpass &> /dev/null
-then
-    echo "[-] sshpass could not be found"
-    exit 1
-fi
-
-if echo $(tart list || true) | grep -q "$TART_IMAGE"; then
-    echo "[*] runner image $TART_IMAGE already exists"
-else
-    echo "[*] runner image $TART_IMAGE does not exist, pulling..."
-    tart pull "$TART_IMAGE"
-fi
-
-echo "[*] using runner image name: $RUNNER_IMAGE_NAME"
-tart clone "$TART_IMAGE" "$RUNNER_IMAGE_NAME"
-
-CLEANUP_DONE=false
-function cleanup {
-    if [ "$CLEANUP_DONE" = false ]; then
-        echo "[*] cleaning up..."
-        tart stop "$RUNNER_IMAGE_NAME" || true
-        wait
-        tart delete "$RUNNER_IMAGE_NAME" || true
-        CLEANUP_DONE=true
-    fi
-}
-trap cleanup EXIT
-trap cleanup INT
-trap cleanup TERM
-trap cleanup HUP
-trap cleanup ERR
-
-function execute_runner_command() {
-    local CMD="$1"
-    echo "[*] executing on runner: $CMD"
-    sshpass -p "$RUNNER_PASSWORD" \
-        ssh -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -o PreferredAuthentications=password \
-        -t \
-        "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
-}
-function execute_runner_upload() {
-    local SRC="$1"
-    local DEST="$2"
-    sshpass -p "$RUNNER_PASSWORD" \
-        scp -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -o PreferredAuthentications=password \
-        -r "$SRC" \
-        "$RUNNER_USERNAME@$RUNNER_IP:$DEST"
-}
-
-echo "[*] starting runner image, mounting current dir $(pwd)..."
-tart run "$RUNNER_IMAGE_NAME" \
-    --dir=project:$(pwd) \
-    --no-graphics \
-    --no-audio \
-    --no-clipboard \
-    & # detach
-
-echo "[*] waiting for runner image to start..."
-RUNNER_BOOT_ATTEMPTS=0
-while [ -z "$RUNNER_IP" ] && [ $RUNNER_BOOT_ATTEMPTS -lt 30 ]; do
-    sleep 2
-    echo "[*] checking for runner ip address..."
-    RUNNER_BOOT_ATTEMPTS=$((RUNNER_BOOT_ATTEMPTS + 1))
-    RUNNER_IP=$(tart ip "$RUNNER_IMAGE_NAME" || true)
-done
-
-echo "[*] runner ip address: $RUNNER_IP"
-while [ $RUNNER_BOOT_ATTEMPTS -lt 60 ]; do # another 30 attempts to connect via ssh
-    echo "[*] checking for ssh connectivity to $RUNNER_IP..."
-    if execute_runner_command "echo hello" &> /dev/null; then
-        echo "[*] ssh connectivity to $RUNNER_IP established"
-        break
-    fi
-    echo "[*] ssh connectivity to $RUNNER_IP not yet established, waiting..."
-    sleep 2
-    RUNNER_BOOT_ATTEMPTS=$((RUNNER_BOOT_ATTEMPTS + 1))
-done
-
-echo "[*] ensuring ~/projects points to mounted directory..."
-execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
+# Run the VM setup
+check_dependencies
+prepare_image
+setup_cleanup_traps
+start_vm
 
 echo "[*] uploading claude configuration..."
 CONFIGURATIONS=(
@@ -123,9 +38,7 @@ if [ "$DROP_TO_SHELL" = true ]; then
     echo "[*] executing: $RUNNER_YOLO_COMMAND"
     execute_runner_command "$RUNNER_YOLO_COMMAND"
 else
-    echo "[*] installing claude..."
-    execute_runner_command "brew install npm && npm install -g @anthropic-ai/claude-code"
-
+    setup_api_keys
     echo "[*] starting yolo-claude..."
     RUNNER_YOLO_COMMAND="cd ~/projects && claude --dangerously-skip-permissions"
     echo "[*] executing: $RUNNER_YOLO_COMMAND"

@@ -1,0 +1,137 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+BASE_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
+PREPARED_IMAGE_NAME="tart_yolo_base"
+RUNNER_USERNAME="admin"
+RUNNER_PASSWORD="admin"
+RUNNER_IP=""
+
+
+check_dependencies() {
+    if ! command -v tart &> /dev/null; then
+        echo "[-] tart could not be found"
+        exit 1
+    fi
+
+    if ! command -v sshpass &> /dev/null; then
+        echo "[-] sshpass could not be found"
+        exit 1
+    fi
+}
+
+prepare_base_image() {
+    if echo $(tart list || true) | grep -q "$BASE_IMAGE"; then
+        echo "[*] base image $BASE_IMAGE already exists"
+    else
+        echo "[*] pulling base image..."
+        tart pull "$BASE_IMAGE"
+    fi
+}
+
+clone_and_setup() {
+    if echo $(tart list || true) | grep -q "$PREPARED_IMAGE_NAME"; then
+        echo "[*] image $PREPARED_IMAGE_NAME already exists, deleting it..."
+        tart stop "$PREPARED_IMAGE_NAME" || true
+        tart delete "$PREPARED_IMAGE_NAME" || true
+    fi
+
+    tart clone "$BASE_IMAGE" "$PREPARED_IMAGE_NAME"
+}
+
+CLEANUP_DONE=false
+function cleanup {
+    if [ "$CLEANUP_DONE" = false ]; then
+        echo "[*] cleaning up..."
+        tart stop "$PREPARED_IMAGE_NAME" || true
+        wait
+        CLEANUP_DONE=true
+    fi
+}
+
+function execute_vm_command() {
+    local CMD="$1"
+    sshpass -p "$RUNNER_PASSWORD" \
+        ssh -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -o PreferredAuthentications=password \
+        -o ConnectTimeout=10 \
+        -t \
+        "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
+}
+
+start_vm() {
+    echo "[*] starting vm for preparation..."
+
+    tart run "$PREPARED_IMAGE_NAME" \
+        --no-graphics \
+        --no-audio \
+        --no-clipboard \
+        &
+
+    echo "[*] waiting for vm to start..."
+    RUNNER_BOOT_ATTEMPTS=0
+    while [ -z "$RUNNER_IP" ] && [ $RUNNER_BOOT_ATTEMPTS -lt 30 ]; do
+        sleep 3
+        RUNNER_BOOT_ATTEMPTS=$((RUNNER_BOOT_ATTEMPTS + 1))
+        RUNNER_IP=$(tart ip "$PREPARED_IMAGE_NAME" || true)
+    done
+
+    if [ -z "$RUNNER_IP" ]; then
+        echo "[-] failed to get vm ip address"
+        exit 1
+    fi
+
+    echo "[*] vm ip address: $RUNNER_IP"
+    echo "[*] waiting for ssh connectivity..."
+    SSH_ATTEMPTS=0
+    while [ $SSH_ATTEMPTS -lt 30 ]; do
+        if execute_vm_command "echo hello" &> /dev/null; then
+            break
+        fi
+        sleep 2
+        SSH_ATTEMPTS=$((SSH_ATTEMPTS + 1))
+    done
+
+    if [ $SSH_ATTEMPTS -eq 30 ]; then
+        echo "[-] failed to establish ssh connectivity"
+        exit 1
+    fi
+}
+
+install_dev_tools() {
+    echo "[*] installing development tools..."
+    execute_vm_command "brew update"
+    execute_vm_command "brew install git curl wget htop npm vim nano jq yq"
+    execute_vm_command "npm install -g @anthropic-ai/claude-code"
+    execute_vm_command "brew install codex"
+}
+
+finalize_vm() {
+    execute_vm_command "brew cleanup"
+    execute_vm_command "history -c"
+}
+
+
+main() {
+    echo "[*] starting yolo tart base preparation..."
+
+    trap cleanup EXIT INT TERM HUP ERR
+
+    check_dependencies
+    prepare_base_image
+    clone_and_setup
+    start_vm
+    install_dev_tools
+    finalize_vm
+
+    echo "[*] stopping vm..."
+    tart stop "$PREPARED_IMAGE_NAME"
+
+    echo "[*] yolo tart base preparation completed successfully!"
+    echo "[*] vm '$PREPARED_IMAGE_NAME' is ready for use"
+    CLEANUP_DONE=true
+}
+
+main "$@"
