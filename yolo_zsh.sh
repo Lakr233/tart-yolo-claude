@@ -41,11 +41,6 @@ setup_cleanup_traps() {
 }
 setup_cleanup_traps
 
-if [ -n "$MOUNT_PROJECT" ]; then
-    echo "[*] mounting project directory: $MOUNT_PROJECT"
-    execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
-fi
-
 if declare -f vm_bootstrap > /dev/null; then
     echo "[*] running vm_bootstrap function..."
     vm_bootstrap
