@@ -8,6 +8,12 @@ export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
 
 source "$(dirname "$0")/yolo_tart_exec.sh"
 
+setup_cleanup() {
+    echo "[*] setting up main cleanup trap..."
+    trap cleanup EXIT INT TERM HUP ERR
+}
+setup_cleanup
+
 vm_bootstrap() {
     echo "[*] uploading codex configuration..."
     CODEX_CONFIGURATIONS=(

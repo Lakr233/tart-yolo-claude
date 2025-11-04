@@ -116,9 +116,7 @@ install_dev_tools() {
 
 finalize_vm() {
     execute_vm_command "brew cleanup"
-    execute_vm_command "history -c"
 }
-
 
 main() {
     echo "[*] starting yolo tart base preparation..."

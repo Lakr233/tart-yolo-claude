@@ -29,11 +29,16 @@ export MOUNT_PROJECT
 
 source "$(dirname "$0")/yolo_tart_exec.sh"
 
+if declare -f setup_cleanup > /dev/null; then
+    echo "[*] skip setup_cleanup function..."
+else
+    echo "[*] setting up cleanup trap..."
+    trap cleanup EXIT INT TERM HUP ERR
+fi
+
 check_dependencies
 prepare_image
 start_vm
-
-trap cleanup EXIT INT TERM HUP ERR
 
 if declare -f vm_bootstrap > /dev/null; then
     echo "[*] running vm_bootstrap function..."
