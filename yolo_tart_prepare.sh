@@ -106,6 +106,7 @@ install_dev_tools() {
     execute_vm_command "brew update"
     execute_vm_command "brew install git curl wget htop npm pnpm vim nano jq yq coreutils sshpass"
     execute_vm_command "brew install codex"
+    execute_vm_command "pnpm setup -f"
     execute_vm_command "pnpm install -g @anthropic-ai/claude-code"
 }
 
