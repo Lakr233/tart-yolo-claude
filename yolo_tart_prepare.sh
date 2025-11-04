@@ -102,10 +102,11 @@ start_vm() {
 
 install_dev_tools() {
     echo "[*] installing development tools..."
+    execute_vm_command "echo 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:\$PATH' >> ~/.zprofile"
     execute_vm_command "brew update"
-    execute_vm_command "brew install git curl wget htop npm vim nano jq yq coreutils sshpass"
+    execute_vm_command "brew install git curl wget htop npm pnpm vim nano jq yq coreutils sshpass"
     execute_vm_command "brew install codex"
-    execute_vm_command "npm install -g @anthropic-ai/claude-code"
+    execute_vm_command "pnpm install -g @anthropic-ai/claude-code"
 }
 
 finalize_vm() {
