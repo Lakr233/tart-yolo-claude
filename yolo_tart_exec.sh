@@ -77,6 +77,13 @@ function execute_runner_upload() {
 
 start_vm() {
     echo "[*] starting runner image, mounting current dir $(pwd)..."
+
+    # Check if VM exists before trying to start it
+    if ! tart list | grep -q "$RUNNER_IMAGE_NAME"; then
+        echo "[-] Error: Runner VM '$RUNNER_IMAGE_NAME' does not exist"
+        exit 1
+    fi
+
     tart run "$RUNNER_IMAGE_NAME" \
         --dir=project:$(pwd) \
         --no-graphics \
@@ -90,8 +97,14 @@ start_vm() {
         sleep 2
         echo "[*] checking for runner ip address..."
         RUNNER_BOOT_ATTEMPTS=$((RUNNER_BOOT_ATTEMPTS + 1))
-        RUNNER_IP=$(tart ip "$RUNNER_IMAGE_NAME" || true)
+        RUNNER_IP=$(tart ip "$RUNNER_IMAGE_NAME" 2>/dev/null || true)
     done
+
+    if [ -z "$RUNNER_IP" ]; then
+        echo "[-] Error: Failed to get IP address for VM '$RUNNER_IMAGE_NAME' after 30 attempts"
+        echo "[-] VM may have failed to start properly"
+        exit 1
+    fi
 
     echo "[*] runner ip address: $RUNNER_IP"
     while [ $RUNNER_BOOT_ATTEMPTS -lt 60 ]; do # another 30 attempts to connect via ssh
@@ -104,6 +117,11 @@ start_vm() {
         sleep 2
         RUNNER_BOOT_ATTEMPTS=$((RUNNER_BOOT_ATTEMPTS + 1))
     done
+
+    if [ $RUNNER_BOOT_ATTEMPTS -ge 60 ]; then
+        echo "[-] Error: Failed to establish SSH connectivity to $RUNNER_IP after 60 attempts"
+        exit 1
+    fi
 
     echo "[*] ensuring ~/projects points to mounted directory..."
     execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
@@ -119,7 +137,7 @@ setup_api_keys() {
     done
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${(%):-%x}" == "$0" ]]; then
     echo "[*] yolo_tart_exec executed directly"
 else
     echo "[*] yolo_tart_exec sourced"
