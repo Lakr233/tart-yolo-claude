@@ -46,7 +46,7 @@ fi
 
 if [ -z "$BOOT_COMMAND" ]; then
     echo "[*] dropping into interactive zsh session..."
-    RUNNER_COMMAND="exec zsh -l"
+    execute_runner_command "exec zsh -l"
 else
     echo "[*] executing boot command..."
     execute_runner_command "$BOOT_COMMAND"
