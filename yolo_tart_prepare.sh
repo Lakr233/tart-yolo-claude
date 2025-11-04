@@ -103,6 +103,7 @@ start_vm() {
 install_dev_tools() {
     echo "[*] installing development tools..."
     execute_vm_command "echo 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:\$PATH' >> ~/.zprofile"
+    execute_vm_command "touch ~/.zshrc && chmod +x ~/.zshrc"
     execute_vm_command "echo 'source ~/.zshrc' >> ~/.zprofile"
     execute_vm_command "brew update"
     execute_vm_command "brew install git curl wget htop npm pnpm vim nano jq yq coreutils sshpass"
