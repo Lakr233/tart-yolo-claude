@@ -112,6 +112,7 @@ install_dev_tools() {
     execute_vm_command "brew install codex"
     execute_vm_command "pnpm setup -f"
     execute_vm_command "pnpm install -g @anthropic-ai/claude-code"
+    execute_vm_command "pnpm install -g @google/gemini-cli"
 }
 
 finalize_vm() {
