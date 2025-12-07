@@ -68,7 +68,7 @@ start_vm() {
         echo "[*] mounting project directory: $MOUNT_PROJECT"
         TART_PARMS+=("--dir=project:$MOUNT_PROJECT")
     fi
-    TART_PARMS+=("--no-graphics" "--no-audio" "--no-clipboard")
+    TART_PARMS+=("--no-audio" "--no-clipboard")
 
     tart run "$PREPARED_IMAGE_NAME" "${TART_PARMS[@]}" &
 

@@ -78,7 +78,6 @@ start_vm() {
 
     tart run "$RUNNER_IMAGE_NAME" \
         --dir=project:"$MOUNT_PATH" \
-        --no-graphics \
         --no-audio \
         --no-clipboard \
         & # detach
