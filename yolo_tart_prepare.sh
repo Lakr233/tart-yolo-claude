@@ -51,7 +51,7 @@ function cleanup {
 
 function execute_vm_command() {
     local CMD="$1"
-    sshpass -p "$RUNNER_PASSWORD" nohup \
+    sshpass -p "$RUNNER_PASSWORD" \
         ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o PreferredAuthentications=password \
