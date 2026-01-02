@@ -51,13 +51,31 @@ function cleanup {
 
 function execute_vm_command() {
     local CMD="$1"
-    sshpass -p "$RUNNER_PASSWORD" \
-        ssh -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -o PreferredAuthentications=password \
-        -o ConnectTimeout=10 \
-        -t \
-        "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
+
+    local MAX_ATTEMPTS=3
+    local ATTEMPT=1
+    local EXIT_CODE=0
+    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+        if sshpass -p "$RUNNER_PASSWORD" \
+            ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o PreferredAuthentications=password \
+            -o ConnectTimeout=10 \
+            -t \
+            "$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"; then
+            return 0
+        fi
+
+        EXIT_CODE=$?
+        if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+            echo "[!] execute_vm_command failed (attempt $ATTEMPT/$MAX_ATTEMPTS), retrying..." >&2
+            sleep 2
+        fi
+        ATTEMPT=$((ATTEMPT + 1))
+    done
+
+    echo "[-] execute_vm_command failed after $MAX_ATTEMPTS attempts: $CMD" >&2
+    return $EXIT_CODE
 }
 
 start_vm() {
