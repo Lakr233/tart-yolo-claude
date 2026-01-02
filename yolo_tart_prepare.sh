@@ -109,7 +109,7 @@ install_dev_tools() {
     execute_vm_command "echo 'source ~/.zshrc' >> ~/.zprofile"
     execute_vm_command "brew update"
     execute_vm_command "brew install git curl wget htop npm corepack vim nano jq yq coreutils sshpass swiftformat xcbeautify python"
-    execute_vm_command "brew install codex"
+    execute_vm_command "(brew uninstall codex || true) && brew install --cask codex"
     execute_vm_command "brew install opencode"
     execute_vm_command "brew upgrade"
     execute_vm_command "corepack enable"
