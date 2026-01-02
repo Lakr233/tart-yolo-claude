@@ -47,7 +47,7 @@ function cleanup {
 function execute_runner_command() {
     local CMD="$1"
     echo "[*] executing on runner: $CMD"
-    sshpass -p "$RUNNER_PASSWORD" \
+    sshpass -p "$RUNNER_PASSWORD" nohup \
         ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o PreferredAuthentications=password \
@@ -59,7 +59,7 @@ function execute_runner_upload() {
     local SRC="$1"
     local DEST="$2"
     echo "[*] uploading $SRC to $DEST"
-    sshpass -p "$RUNNER_PASSWORD" \
+    sshpass -p "$RUNNER_PASSWORD" nohup \
         scp -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o PreferredAuthentications=password \

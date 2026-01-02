@@ -51,7 +51,7 @@ function cleanup {
 
 function execute_vm_command() {
     local CMD="$1"
-    sshpass -p "$RUNNER_PASSWORD" \
+    sshpass -p "$RUNNER_PASSWORD" nohup \
         ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o PreferredAuthentications=password \
@@ -109,7 +109,7 @@ install_dev_tools() {
     execute_vm_command "echo 'source ~/.zshrc' >> ~/.zprofile"
     execute_vm_command "brew update"
     execute_vm_command "brew install --force --overwrite git curl wget htop npm corepack vim nano jq yq coreutils sshpass swiftformat xcbeautify python"
-    execute_vm_command "brew install --cask --force --overwrite codex"
+    execute_vm_command "brew install --cask --force codex"
     execute_vm_command "brew install --force --overwrite opencode"
     execute_vm_command "brew upgrade"
     execute_vm_command "corepack enable"
