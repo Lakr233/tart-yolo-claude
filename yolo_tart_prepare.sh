@@ -111,6 +111,8 @@ install_dev_tools() {
     execute_vm_command "brew install git curl wget htop npm corepack vim nano jq yq coreutils sshpass swiftformat xcbeautify python"
     execute_vm_command "brew install codex"
     execute_vm_command "brew install opencode"
+    execute_vm_command "brew upgrade"
+    execute_vm_command "corepack enable"
     execute_vm_command "pnpm setup -f"
     execute_vm_command "pnpm install -g @anthropic-ai/claude-code"
     execute_vm_command "pnpm install -g @google/gemini-cli"
