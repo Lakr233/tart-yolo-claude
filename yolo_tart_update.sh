@@ -114,7 +114,7 @@ update_dev_tools() {
     execute_vm_command "touch ~/.zshrc && chmod +x ~/.zshrc"
     execute_vm_command "echo 'source ~/.zshrc' >> ~/.zprofile"
     execute_vm_command "brew update"
-    execute_vm_command "brew upgrade"
+    execute_vm_command "brew upgrade --overwrite"
     execute_vm_command "command -v npm >/dev/null 2>&1 && npm update -g || true"
     execute_vm_command "command -v pnpm >/dev/null 2>&1 && pnpm update -g || true"
 }
