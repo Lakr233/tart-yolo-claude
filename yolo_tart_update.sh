@@ -66,6 +66,39 @@ function execute_vm_command() {
     return $EXIT_CODE
 }
 
+function execute_vm_init() {
+    local MODE="$1" # init|update
+    local INIT_LOCAL="$(dirname "$0")/yolo_vm_init.sh"
+
+    echo "[*] uploading and running yolo_vm_init.sh inside VM (mode=$MODE)..."
+
+    local MAX_ATTEMPTS=3
+    local ATTEMPT=1
+    local EXIT_CODE=0
+    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+        if sshpass -p "$RUNNER_PASSWORD" \
+            ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o PreferredAuthentications=password \
+            -o ConnectTimeout=10 \
+            "$RUNNER_USERNAME@$RUNNER_IP" \
+            "zsh -lc 'cat > ~/yolo_vm_init.sh && chmod +x ~/yolo_vm_init.sh && ~/yolo_vm_init.sh --mode $MODE'" \
+            < "$INIT_LOCAL"; then
+            return 0
+        fi
+
+        EXIT_CODE=$?
+        if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+            echo "[!] execute_vm_init failed (attempt $ATTEMPT/$MAX_ATTEMPTS), retrying..." >&2
+            sleep 2
+        fi
+        ATTEMPT=$((ATTEMPT + 1))
+    done
+
+    echo "[-] execute_vm_init failed after $MAX_ATTEMPTS attempts" >&2
+    return $EXIT_CODE
+}
+
 start_vm() {
     echo "[*] starting vm for update..."
 
@@ -109,14 +142,7 @@ start_vm() {
 }
 
 update_dev_tools() {
-    echo "[*] updating brew and node tooling..."
-    execute_vm_command "echo 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:\$PATH' >> ~/.zprofile"
-    execute_vm_command "touch ~/.zshrc && chmod +x ~/.zshrc"
-    execute_vm_command "echo 'source ~/.zshrc' >> ~/.zprofile"
-    execute_vm_command "brew update"
-    execute_vm_command "brew upgrade --overwrite"
-    execute_vm_command "command -v npm >/dev/null 2>&1 && npm update -g || true"
-    execute_vm_command "command -v pnpm >/dev/null 2>&1 && pnpm update -g || true"
+    execute_vm_init "update"
 }
 
 main() {
