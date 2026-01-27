@@ -51,6 +51,8 @@ echo "[*] yolo_vm_init: mode=$MODE"
 # Ensure common PATH entries exist for both brew and uv tool shims.
 ensure_line_in_file 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH' "$HOME/.zprofile"
 ensure_line_in_file 'export PATH=$HOME/.local/bin:$PATH' "$HOME/.zprofile"
+ensure_line_in_file 'export PNPM_HOME=$HOME/Library/pnpm' "$HOME/.zprofile"
+ensure_line_in_file 'export PATH=$PNPM_HOME:$PATH' "$HOME/.zprofile"
 ensure_line_in_file '[[ -f $HOME/.zshrc ]] && source $HOME/.zshrc' "$HOME/.zprofile"
 touch "$HOME/.zshrc"
 
@@ -91,6 +93,12 @@ if ! command -v node >/dev/null 2>&1; then
     exit 1
 fi
 
+# pnpm global installs require a global bin dir (PNPM_HOME) on PATH.
+PNPM_HOME="${PNPM_HOME:-$HOME/Library/pnpm}"
+mkdir -p "$PNPM_HOME"
+export PNPM_HOME
+export PATH="$PNPM_HOME:$PATH"
+
 # Prefer pnpm (via corepack) for global CLI installs.
 # Fall back to npm->pnpm if corepack is unavailable for some reason.
 if command -v corepack >/dev/null 2>&1; then
@@ -108,6 +116,10 @@ if ! command -v pnpm >/dev/null 2>&1; then
     echo "[*] pnpm not found; installing pnpm via npm..."
     npm i -g pnpm
 fi
+
+# Ensure pnpm knows where to place global binaries in non-interactive shells.
+pnpm config set global-bin-dir "$PNPM_HOME" >/dev/null 2>&1 || true
+pnpm setup >/dev/null 2>&1 || true
 
 echo "[*] installing/updating global CLIs via pnpm..."
 # Requested packages:
