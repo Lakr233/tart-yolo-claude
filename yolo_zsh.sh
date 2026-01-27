@@ -6,21 +6,21 @@ set -euo pipefail
 : ${MOUNT_PROJECT:="$(pwd)"}
 
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --boot-command)
-            BOOT_COMMAND="$2"
-            shift 2
-            ;;
-        --mount-project)
-            MOUNT_PROJECT="$2"
-            shift 2
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [--boot-command <command>] [--mount <directory>]"
-            exit 1
-            ;;
-    esac
+	case $1 in
+	--boot-command)
+		BOOT_COMMAND="$2"
+		shift 2
+		;;
+	--mount-project)
+		MOUNT_PROJECT="$2"
+		shift 2
+		;;
+	*)
+		echo "Unknown option: $1"
+		echo "Usage: $0 [--boot-command <command>] [--mount <directory>]"
+		exit 1
+		;;
+	esac
 done
 
 export TART_IMAGE="${TART_IMAGE:-ghcr.io/cirruslabs/macos-tahoe-xcode:latest}"
@@ -29,28 +29,28 @@ export MOUNT_PROJECT
 
 source "$(dirname "$0")/yolo_tart_exec.sh"
 
-if declare -f setup_cleanup > /dev/null; then
-    echo "[*] skip setup_cleanup function..."
+if declare -f setup_cleanup >/dev/null; then
+	echo "[*] skip setup_cleanup function..."
 else
-    echo "[*] setting up cleanup trap..."
-    trap cleanup EXIT INT TERM HUP ERR
+	echo "[*] setting up cleanup trap..."
+	trap cleanup EXIT INT TERM HUP ERR
 fi
 
 check_dependencies
 prepare_image
 start_vm
 
-if declare -f vm_bootstrap > /dev/null; then
-    echo "[*] running vm_bootstrap function..."
-    vm_bootstrap
+if declare -f vm_bootstrap >/dev/null; then
+	echo "[*] running vm_bootstrap function..."
+	vm_bootstrap
 fi
 
 if [ -z "$BOOT_COMMAND" ]; then
-    echo "[*] dropping into interactive zsh session..."
-    execute_runner_command "exec zsh -l"
+	echo "[*] dropping into interactive zsh session..."
+	execute_runner_command "exec zsh -l"
 else
-    echo "[*] executing boot command..."
-    execute_runner_command "$BOOT_COMMAND"
+	echo "[*] executing boot command..."
+	execute_runner_command "$BOOT_COMMAND"
 fi
 
 echo "[*] session exited, cleaning up..."
