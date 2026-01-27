@@ -56,6 +56,10 @@ ensure_line_in_file 'export PATH=$PNPM_HOME:$PATH' "$HOME/.zprofile"
 ensure_line_in_file '[[ -f $HOME/.zshrc ]] && source $HOME/.zshrc' "$HOME/.zprofile"
 touch "$HOME/.zshrc"
 
+# Make PATH effective for this non-interactive run as well.
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+
 BREW_BIN=""
 if command -v brew >/dev/null 2>&1; then
     BREW_BIN="$(command -v brew)"
