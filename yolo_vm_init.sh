@@ -74,14 +74,15 @@ if [[ "$MODE" == "init" ]]; then
     echo "[*] installing base development tools (brew)..."
     "$BREW_BIN" update
 
-    "$BREW_BIN" install --force --overwrite \
+    # Avoid incidental upgrades that can fail on unrelated formulae.
+    HOMEBREW_NO_INSTALL_UPGRADE=1 "$BREW_BIN" install --force --overwrite \
         git curl wget htop vim nano jq yq coreutils \
         python@3.13 \
         swiftformat xcbeautify \
         node \
         uv
 
-    "$BREW_BIN" upgrade || true
+    # Keep init stable; do not upgrade the whole brew set here.
 else
     echo "[*] updating brew packages..."
     "$BREW_BIN" update
@@ -117,9 +118,27 @@ if ! command -v pnpm >/dev/null 2>&1; then
     npm i -g pnpm
 fi
 
-# Ensure pnpm knows where to place global binaries in non-interactive shells.
-pnpm config set global-bin-dir "$PNPM_HOME" >/dev/null 2>&1 || true
-pnpm setup >/dev/null 2>&1 || true
+PNPM_GLOBAL_DIR="$HOME/Library/pnpm/global"
+mkdir -p "$PNPM_GLOBAL_DIR"
+
+echo "[*] configuring pnpm global dirs..."
+pnpm config set global-bin-dir "$PNPM_HOME"
+pnpm config set global-dir "$PNPM_GLOBAL_DIR"
+
+PNPM_GLOBAL_BIN_DIR="$(pnpm config get global-bin-dir || true)"
+if [[ -z "$PNPM_GLOBAL_BIN_DIR" ]]; then
+    echo "[-] pnpm global-bin-dir is empty after configuration" >&2
+    exit 1
+fi
+case ":$PATH:" in
+    *":$PNPM_GLOBAL_BIN_DIR:"*)
+        ;;
+    *)
+        echo "[-] pnpm global bin dir is not in PATH: $PNPM_GLOBAL_BIN_DIR" >&2
+        echo "[-] PATH is: $PATH" >&2
+        exit 1
+        ;;
+esac
 
 echo "[*] installing/updating global CLIs via pnpm..."
 # Requested packages:
