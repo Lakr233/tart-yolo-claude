@@ -47,7 +47,7 @@ fi
 
 if [ -z "$BOOT_COMMAND" ]; then
 	echo "[*] dropping into interactive zsh session..."
-	execute_runner_command "cd $MOUNT_PROJECT && exec zsh -l"
+	execute_runner_command "cd projects && exec zsh -l"
 else
 	echo "[*] executing boot command..."
 	execute_runner_command "$BOOT_COMMAND"
