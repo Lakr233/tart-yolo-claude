@@ -16,25 +16,12 @@ setup_cleanup
 
 vm_bootstrap() {
 	echo "[*] uploading gemini configuration..."
-	GEMINI_CONFIGURATIONS=(
+	execute_runner_upload_batch "/Users/$RUNNER_USERNAME" \
 		"${HOME}/.gemini"
-	)
-	for CONFIGURATION in "${GEMINI_CONFIGURATIONS[@]}"; do
-		if [ -e "$CONFIGURATION" ]; then
-			echo "[*] found configuration: $CONFIGURATION"
-			execute_runner_upload "$CONFIGURATION" "/Users/$RUNNER_USERNAME/"
-		fi
-	done
 
-	for ENV_KEY in $(printenv | cut -d= -f1); do
-		if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
-			ENV_VALUE=$(printenv "$ENV_KEY")
-			echo "[*] adding environment variable $ENV_KEY to runner"
-			execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zshenv"
-		fi
-	done
+	execute_runner_export_envs "API_KEY"
 }
 
-export BOOT_COMMAND="cd ~/project && gemini --yolo"
+export BOOT_COMMAND="cd ~/project && gemini --yolo; exec zsh -l"
 
 source "$(dirname "$0")/yolo_zsh.sh"

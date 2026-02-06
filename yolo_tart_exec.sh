@@ -67,6 +67,65 @@ function execute_runner_upload() {
 		"$RUNNER_USERNAME@$RUNNER_IP:$DEST"
 }
 
+# Batch upload: tar files locally, scp one archive, extract on VM.
+# Usage: execute_runner_upload_batch <dest_base_dir> <file1> [file2 ...]
+# Files are tarred relative to $HOME and extracted into dest_base_dir.
+function execute_runner_upload_batch() {
+	local DEST_BASE="$1"
+	shift
+	local FILES_TO_TAR=()
+	for SRC in "$@"; do
+		if [ -e "$SRC" ]; then
+			# Get path relative to $HOME
+			local REL="${SRC#$HOME/}"
+			FILES_TO_TAR+=("$REL")
+			echo "[*] found configuration: $SRC"
+		fi
+	done
+
+	if [ ${#FILES_TO_TAR[@]} -eq 0 ]; then
+		echo "[*] no configuration files to upload"
+		return
+	fi
+
+	local TAR_FILE="/tmp/yolo_upload_$$.tar.gz"
+	echo "[*] creating archive with ${#FILES_TO_TAR[@]} item(s)..."
+	tar -czf "$TAR_FILE" -C "$HOME" "${FILES_TO_TAR[@]}"
+
+	echo "[*] uploading archive to VM..."
+	sshpass -p "$RUNNER_PASSWORD" \
+		scp -o StrictHostKeyChecking=no \
+		-o UserKnownHostsFile=/dev/null \
+		-o PreferredAuthentications=password \
+		"$TAR_FILE" \
+		"$RUNNER_USERNAME@$RUNNER_IP:/tmp/yolo_upload.tar.gz"
+
+	echo "[*] extracting archive on VM..."
+	execute_runner_command "tar -xzf /tmp/yolo_upload.tar.gz -C '$DEST_BASE' && rm -f /tmp/yolo_upload.tar.gz"
+
+	rm -f "$TAR_FILE"
+}
+
+# Batch export environment variables matching a pattern to VM's ~/.zshenv.
+# Usage: execute_runner_export_envs <pattern>
+# Example: execute_runner_export_envs "API_KEY"
+function execute_runner_export_envs() {
+	local PATTERN="$1"
+	local ENV_EXPORTS=""
+	for ENV_KEY in $(printenv | cut -d= -f1); do
+		if [[ "$ENV_KEY" == *"$PATTERN"* ]]; then
+			local ENV_VALUE=$(printenv "$ENV_KEY")
+			echo "[*] adding environment variable $ENV_KEY to runner"
+			ENV_EXPORTS+="export $ENV_KEY=\"$ENV_VALUE\""$'\n'
+		fi
+	done
+
+	if [ -n "$ENV_EXPORTS" ]; then
+		execute_runner_command "cat >> ~/.zshenv <<'ENVEOF'
+${ENV_EXPORTS}ENVEOF"
+	fi
+}
+
 start_vm() {
 	local MOUNT_PATH="${MOUNT_DIR:-$(pwd)}"
 	echo "[*] starting runner image, mounting dir $MOUNT_PATH..."
