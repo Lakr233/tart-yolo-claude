@@ -27,7 +27,7 @@ export HOMEBREW_NO_INSTALL_UPGRADE=1
 echo "[*] installing base development tools (brew)..."
 brew update
 brew install --force --overwrite \
-	git curl wget htop vim nano jq yq coreutils \
+	git curl wget htop vim nano jq yq coreutils tmux \
 	python@3.13 \
 	swiftformat xcbeautify \
 	node \
