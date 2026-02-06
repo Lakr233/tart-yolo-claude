@@ -35,6 +35,6 @@ vm_bootstrap() {
 	done
 }
 
-export BOOT_COMMAND="cd ~/projects && gemini --yolo"
+export BOOT_COMMAND="cd ~/project && gemini --yolo"
 
 source "$(dirname "$0")/yolo_zsh.sh"

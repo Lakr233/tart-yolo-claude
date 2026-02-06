@@ -37,6 +37,6 @@ vm_bootstrap() {
 }
 
 # uv tool installs typically expose a shim in ~/.local/bin.
-export BOOT_COMMAND='cd ~/projects && kimi --yolo'
+export BOOT_COMMAND='cd ~/project && kimi --yolo'
 
 source "$(dirname "$0")/yolo_zsh.sh"

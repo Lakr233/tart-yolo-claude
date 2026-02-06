@@ -37,6 +37,6 @@ vm_bootstrap() {
 }
 
 # opencode binary name may vary; try common ones.
-export BOOT_COMMAND='cd ~/projects && export OPENCODE_YOLO=true && opencode'
+export BOOT_COMMAND='cd ~/project && export OPENCODE_YOLO=true && opencode'
 
 source "$(dirname "$0")/yolo_zsh.sh"

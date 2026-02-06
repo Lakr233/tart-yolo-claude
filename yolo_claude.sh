@@ -36,6 +36,6 @@ vm_bootstrap() {
 	done
 }
 
-export BOOT_COMMAND="cd ~/projects && claude --dangerously-skip-permissions"
+export BOOT_COMMAND="cd ~/project && claude --dangerously-skip-permissions"
 
 source "$(dirname "$0")/yolo_zsh.sh"

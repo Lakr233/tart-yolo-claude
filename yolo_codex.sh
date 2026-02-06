@@ -36,6 +36,6 @@ vm_bootstrap() {
 	done
 }
 
-export BOOT_COMMAND="cd ~/projects && codex --yolo"
+export BOOT_COMMAND="cd ~/project && codex --yolo"
 
 source "$(dirname "$0")/yolo_zsh.sh"

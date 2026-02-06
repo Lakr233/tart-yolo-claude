@@ -114,6 +114,6 @@ start_vm() {
 		exit 1
 	fi
 
-	echo "[*] ensuring ~/projects points to mounted directory..."
-	execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/projects"
+	echo "[*] ensuring ~/project points to mounted directory..."
+	execute_runner_command "ln -sfn '$RUNNER_PROJECT_MOUNT' ~/project"
 }
