@@ -31,7 +31,7 @@ vm_bootstrap() {
 		if [[ "$ENV_KEY" == *"API_KEY"* ]]; then
 			ENV_VALUE=$(printenv "$ENV_KEY")
 			echo "[*] adding environment variable $ENV_KEY to runner"
-			execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zprofile"
+			execute_runner_command "echo 'export $ENV_KEY=\"$ENV_VALUE\"' >> ~/.zshenv"
 		fi
 	done
 }

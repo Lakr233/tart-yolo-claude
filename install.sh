@@ -4,4 +4,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 chmod +x ./*
-cp -f yolo_*.sh /usr/local/bin/
+
+for f in yolo_*.sh; do
+	echo "[*] installing $f -> /usr/local/bin/$f"
+	cp -f "$f" /usr/local/bin/
+done

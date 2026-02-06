@@ -2,40 +2,6 @@
 
 set -euo pipefail
 
-MODE="init" # init|update
-
-usage() {
-	cat <<EOF
-Usage: $0 [--mode init|update]
-
-This script is intended to run INSIDE the VM.
-The host-side launcher should upload it to the VM, then execute it.
-EOF
-}
-
-while [[ $# -gt 0 ]]; do
-	case "$1" in
-	--mode)
-		MODE="$2"
-		shift 2
-		;;
-	-h | --help)
-		usage
-		exit 0
-		;;
-	*)
-		echo "Unknown option: $1" >&2
-		usage >&2
-		exit 1
-		;;
-	esac
-done
-
-if [[ "$MODE" != "init" && "$MODE" != "update" ]]; then
-	echo "[-] invalid --mode: $MODE (expected init|update)" >&2
-	exit 1
-fi
-
 ensure_line_in_file() {
 	local line="$1"
 	local file="$2"
@@ -46,70 +12,40 @@ ensure_line_in_file() {
 	fi
 }
 
-echo "[*] yolo_vm_init: mode=$MODE"
+echo "[*] yolo_vm_init: starting..."
 
-# Ensure common PATH entries exist for both brew and uv tool shims.
-ensure_line_in_file 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH' "$HOME/.zprofile"
-ensure_line_in_file 'export PATH=$HOME/.local/bin:$PATH' "$HOME/.zprofile"
-ensure_line_in_file 'export PNPM_HOME=$HOME/Library/pnpm' "$HOME/.zprofile"
-ensure_line_in_file 'export PATH=$PNPM_HOME:$PATH' "$HOME/.zprofile"
-ensure_line_in_file '[[ -f $HOME/.zshrc ]] && source $HOME/.zshrc' "$HOME/.zprofile"
-touch "$HOME/.zshrc"
+ensure_line_in_file 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH' "$HOME/.zshenv"
+ensure_line_in_file 'export PATH=$HOME/.local/bin:$PATH' "$HOME/.zshenv"
+ensure_line_in_file 'export PNPM_HOME=$HOME/Library/pnpm' "$HOME/.zshenv"
+ensure_line_in_file 'export PATH=$PNPM_HOME:$PATH' "$HOME/.zshenv"
 
-# Make PATH effective for this non-interactive run as well.
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-
-BREW_BIN=""
-if command -v brew >/dev/null 2>&1; then
-	BREW_BIN="$(command -v brew)"
-elif [[ -x /opt/homebrew/bin/brew ]]; then
-	BREW_BIN="/opt/homebrew/bin/brew"
-fi
-
-if [[ -z "$BREW_BIN" ]]; then
-	echo "[-] Homebrew not found inside VM. Please ensure the base image has brew." >&2
-	exit 1
-fi
+source "$HOME/.zshenv"
 
 export HOMEBREW_NO_ENV_HINTS=1
+export HOMEBREW_NO_INSTALL_UPGRADE=1
 
-if [[ "$MODE" == "init" ]]; then
-	echo "[*] installing base development tools (brew)..."
-	"$BREW_BIN" update
-
-	# Avoid incidental upgrades that can fail on unrelated formulae.
-	HOMEBREW_NO_INSTALL_UPGRADE=1 "$BREW_BIN" install --force --overwrite \
-		git curl wget htop vim nano jq yq coreutils \
-		python@3.13 \
-		swiftformat xcbeautify \
-		node \
-		uv
-
-	# Keep init stable; do not upgrade the whole brew set here.
-else
-	echo "[*] updating brew packages..."
-	"$BREW_BIN" update
-	"$BREW_BIN" upgrade --overwrite || true
-fi
+echo "[*] installing base development tools (brew)..."
+brew update
+brew install --force --overwrite \
+	git curl wget htop vim nano jq yq coreutils \
+	python@3.13 \
+	swiftformat xcbeautify \
+	node \
+	uv
 
 if ! command -v node >/dev/null 2>&1; then
 	echo "[-] node not found after brew install node" >&2
 	exit 1
 fi
 
-# pnpm global installs require a global bin dir (PNPM_HOME) on PATH.
 PNPM_HOME="${PNPM_HOME:-$HOME/Library/pnpm}"
 mkdir -p "$PNPM_HOME"
 export PNPM_HOME
 export PATH="$PNPM_HOME:$PATH"
 
-# Prefer pnpm (via corepack) for global CLI installs.
-# Fall back to npm->pnpm if corepack is unavailable for some reason.
 if command -v corepack >/dev/null 2>&1; then
 	echo "[*] enabling corepack/pnpm..."
 	corepack enable || true
-	# Try to activate latest pnpm.
 	corepack prepare pnpm@latest --activate || true
 fi
 
@@ -135,36 +71,45 @@ if [[ -z "$PNPM_GLOBAL_BIN_DIR" ]]; then
 	exit 1
 fi
 case ":$PATH:" in
-*":$PNPM_GLOBAL_BIN_DIR:"*) ;;
-*)
-	echo "[-] pnpm global bin dir is not in PATH: $PNPM_GLOBAL_BIN_DIR" >&2
-	echo "[-] PATH is: $PATH" >&2
-	exit 1
-	;;
+	*":$PNPM_GLOBAL_BIN_DIR:"*) ;;
+	*)
+		echo "[-] pnpm global bin dir is not in PATH: $PNPM_GLOBAL_BIN_DIR" >&2
+		echo "[-] PATH is: $PATH" >&2
+		exit 1
+		;;
 esac
 
-echo "[*] installing/updating global CLIs via pnpm..."
-# Requested packages:
-# - @anthropic-ai/claude-code@latest
-# - @openai/codex@latest
-# - @google/gemini-cli@latest
-# - opencode-ai
+echo "[*] installing/updating Claude Code (native install)..."
+curl -fsSL https://claude.ai/install.sh | bash
+
+echo "[*] installing/updating OpenCode (native install)..."
+curl -fsSL https://opencode.ai/install | bash
+
+echo "[*] installing/updating Codex and Gemini CLI via pnpm..."
 pnpm add -g \
-	@anthropic-ai/claude-code@latest \
 	@openai/codex@latest \
-	@google/gemini-cli@latest \
-	opencode-ai
+	@google/gemini-cli@latest
 
 if ! command -v uv >/dev/null 2>&1; then
 	echo "[-] uv not found after installation" >&2
 	exit 1
 fi
 
-echo "[*] installing/updating kimi via uv (uv must be installed first)..."
+echo "[*] installing/updating Kimi CLI via uv..."
 uv python install 3.13
 uv tool install --python 3.13 kimi-cli || uv tool upgrade kimi-cli
 
+echo "[*] installing/updating ralph-claude-code..."
+RALPH_DIR="$HOME/.ralph-claude-code"
+if [[ -d "$RALPH_DIR" ]]; then
+	echo "[*] ralph-claude-code already cloned, pulling latest..."
+	git -C "$RALPH_DIR" pull || true
+else
+	git clone https://github.com/frankbria/ralph-claude-code.git "$RALPH_DIR"
+fi
+(cd "$RALPH_DIR" && bash install.sh)
+
 echo "[*] cleaning up..."
-"$BREW_BIN" cleanup || true
+brew cleanup || true
 
 echo "[*] yolo_vm_init completed"

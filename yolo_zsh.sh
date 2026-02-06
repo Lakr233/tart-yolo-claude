@@ -7,19 +7,19 @@ set -euo pipefail
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
-	--boot-command)
-		BOOT_COMMAND="$2"
-		shift 2
-		;;
-	--mount-project)
-		MOUNT_PROJECT="$2"
-		shift 2
-		;;
-	*)
-		echo "Unknown option: $1"
-		echo "Usage: $0 [--boot-command <command>] [--mount <directory>]"
-		exit 1
-		;;
+		--boot-command)
+			BOOT_COMMAND="$2"
+			shift 2
+			;;
+		--mount-project)
+			MOUNT_PROJECT="$2"
+			shift 2
+			;;
+		*)
+			echo "Unknown option: $1"
+			echo "Usage: $0 [--boot-command <command>] [--mount <directory>]"
+			exit 1
+			;;
 	esac
 done
 

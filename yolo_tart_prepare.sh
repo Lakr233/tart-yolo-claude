@@ -62,7 +62,7 @@ function execute_vm_command() {
 			-o PreferredAuthentications=password \
 			-o ConnectTimeout=10 \
 			-t \
-			"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"; then
+			"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zshenv && $CMD"; then
 			return 0
 		fi
 
@@ -79,10 +79,9 @@ function execute_vm_command() {
 }
 
 function execute_vm_init() {
-	local MODE="$1" # init|update
 	local INIT_LOCAL="$(dirname "$0")/yolo_vm_init.sh"
 
-	echo "[*] uploading and running yolo_vm_init.sh inside VM (mode=$MODE)..."
+	echo "[*] uploading and running yolo_vm_init.sh inside VM..."
 
 	local MAX_ATTEMPTS=3
 	local ATTEMPT=1
@@ -94,7 +93,7 @@ function execute_vm_init() {
 			-o PreferredAuthentications=password \
 			-o ConnectTimeout=10 \
 			"$RUNNER_USERNAME@$RUNNER_IP" \
-			"zsh -lc 'cat > ~/yolo_vm_init.sh && chmod +x ~/yolo_vm_init.sh && ~/yolo_vm_init.sh --mode $MODE'" \
+			"zsh -lc 'cat > ~/yolo_vm_init.sh && chmod +x ~/yolo_vm_init.sh && ~/yolo_vm_init.sh'" \
 			<"$INIT_LOCAL"; then
 			return 0
 		fi
@@ -154,7 +153,7 @@ start_vm() {
 }
 
 install_dev_tools() {
-	execute_vm_init "init"
+	execute_vm_init
 }
 
 finalize_vm() {

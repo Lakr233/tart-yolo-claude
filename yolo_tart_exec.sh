@@ -52,7 +52,7 @@ function execute_runner_command() {
 		-o UserKnownHostsFile=/dev/null \
 		-o PreferredAuthentications=password \
 		-t \
-		"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zprofile && $CMD"
+		"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zshenv && $CMD"
 }
 
 function execute_runner_upload() {
