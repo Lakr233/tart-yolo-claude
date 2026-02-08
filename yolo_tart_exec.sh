@@ -51,6 +51,7 @@ function execute_runner_command() {
 		ssh -o StrictHostKeyChecking=no \
 		-o UserKnownHostsFile=/dev/null \
 		-o PreferredAuthentications=password \
+		-o ConnectTimeout=5 \
 		-t \
 		"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zshenv && $CMD"
 }
@@ -63,6 +64,7 @@ function execute_runner_upload() {
 		scp -o StrictHostKeyChecking=no \
 		-o UserKnownHostsFile=/dev/null \
 		-o PreferredAuthentications=password \
+		-o ConnectTimeout=5 \
 		-r "$SRC" \
 		"$RUNNER_USERNAME@$RUNNER_IP:$DEST"
 }
@@ -97,6 +99,7 @@ function execute_runner_upload_batch() {
 		scp -o StrictHostKeyChecking=no \
 		-o UserKnownHostsFile=/dev/null \
 		-o PreferredAuthentications=password \
+		-o ConnectTimeout=5 \
 		"$TAR_FILE" \
 		"$RUNNER_USERNAME@$RUNNER_IP:/tmp/yolo_upload.tar.gz"
 
