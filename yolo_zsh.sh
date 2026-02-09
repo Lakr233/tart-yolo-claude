@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-export TART_IMAGE="${TART_IMAGE:-ghcr.io/cirruslabs/macos-tahoe-xcode:latest}"
+export TART_IMAGE="${TART_IMAGE:-tart_yolo_base}"
 export RUNNER_IMAGE_NAME="${RUNNER_IMAGE_NAME:-yolo-zsh-runner-${RANDOM}}"
 export MOUNT_PROJECT
 
