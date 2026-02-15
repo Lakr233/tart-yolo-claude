@@ -2,6 +2,13 @@
 
 set -euo pipefail
 
+# Resolve script directory (handles PATH-based invocation)
+if [[ "$0" == */* ]]; then
+	SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+else
+	SCRIPT_DIR="$(dirname "$(whence -p "$0")")"
+fi
+
 BASE_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode:latest"
 PREPARED_IMAGE_NAME="tart_yolo_base"
 RUNNER_USERNAME="admin"
@@ -62,7 +69,7 @@ function execute_vm_command() {
 			-o PreferredAuthentications=password \
 			-o ConnectTimeout=10 \
 			-t \
-			"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zshenv && $CMD"; then
+			"$RUNNER_USERNAME@$RUNNER_IP" "[[ -f ~/.zshenv ]] && source ~/.zshenv; $CMD"; then
 			return 0
 		fi
 
@@ -79,7 +86,7 @@ function execute_vm_command() {
 }
 
 function execute_vm_init() {
-	local INIT_LOCAL="$(dirname "$0")/yolo_vm_init.sh"
+	local INIT_LOCAL="$SCRIPT_DIR/yolo_vm_init.sh"
 
 	echo "[*] uploading and running yolo_vm_init.sh inside VM..."
 

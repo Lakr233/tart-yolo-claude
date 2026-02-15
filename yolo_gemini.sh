@@ -2,11 +2,17 @@
 
 set -euo pipefail
 
+if [[ "$0" == */* ]]; then
+	SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+else
+	SCRIPT_DIR="$(dirname "$(whence -p "$0")")"
+fi
+
 export TART_IMAGE="tart_yolo_base"
 export RUNNER_IMAGE_NAME="yolo-gemini-runner-${RANDOM}"
 export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
 
-source "$(dirname "$0")/yolo_tart_exec.sh"
+source "$SCRIPT_DIR/yolo_tart_exec.sh"
 
 setup_cleanup() {
 	echo "[*] setting up main cleanup trap..."
@@ -24,4 +30,4 @@ vm_bootstrap() {
 
 export BOOT_COMMAND="cd ~/project && gemini --yolo; exec zsh -l"
 
-source "$(dirname "$0")/yolo_zsh.sh"
+source "$SCRIPT_DIR/yolo_zsh.sh"

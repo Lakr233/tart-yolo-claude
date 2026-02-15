@@ -2,6 +2,14 @@
 
 set -euo pipefail
 
+if [[ -z "${SCRIPT_DIR:-}" ]]; then
+	if [[ "$0" == */* ]]; then
+		SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+	else
+		SCRIPT_DIR="$(dirname "$(whence -p "$0")")"
+	fi
+fi
+
 : ${BOOT_COMMAND:=""}
 : ${MOUNT_PROJECT:="$(pwd)"}
 
@@ -27,7 +35,7 @@ export TART_IMAGE="${TART_IMAGE:-tart_yolo_base}"
 export RUNNER_IMAGE_NAME="${RUNNER_IMAGE_NAME:-yolo-zsh-runner-${RANDOM}}"
 export MOUNT_PROJECT
 
-source "$(dirname "$0")/yolo_tart_exec.sh"
+source "$SCRIPT_DIR/yolo_tart_exec.sh"
 
 if declare -f setup_cleanup >/dev/null; then
 	echo "[*] skip setup_cleanup function..."

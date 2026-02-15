@@ -53,7 +53,7 @@ function execute_runner_command() {
 		-o PreferredAuthentications=password \
 		-o ConnectTimeout=30 \
 		-t \
-		"$RUNNER_USERNAME@$RUNNER_IP" "source ~/.zshenv && $CMD"
+		"$RUNNER_USERNAME@$RUNNER_IP" "[[ -f ~/.zshenv ]] && source ~/.zshenv; $CMD"
 }
 
 function execute_runner_upload() {
