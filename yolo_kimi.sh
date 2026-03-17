@@ -12,14 +12,6 @@ export TART_IMAGE="tart_yolo_base"
 export RUNNER_IMAGE_NAME="yolo-kimi-runner-${RANDOM}"
 export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
 
-source "$SCRIPT_DIR/yolo_tart_exec.sh"
-
-setup_cleanup() {
-	echo "[*] setting up main cleanup trap..."
-	trap cleanup EXIT INT TERM HUP ERR
-}
-setup_cleanup
-
 vm_bootstrap() {
 	echo "[*] uploading kimi configuration..."
 	execute_runner_upload_batch "/Users/$RUNNER_USERNAME" \

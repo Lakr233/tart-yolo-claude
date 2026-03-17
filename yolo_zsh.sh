@@ -36,13 +36,7 @@ export RUNNER_IMAGE_NAME="${RUNNER_IMAGE_NAME:-yolo-zsh-runner-${RANDOM}}"
 export MOUNT_PROJECT
 
 source "$SCRIPT_DIR/yolo_tart_exec.sh"
-
-if declare -f setup_cleanup >/dev/null; then
-	echo "[*] skip setup_cleanup function..."
-else
-	echo "[*] setting up cleanup trap..."
-	trap cleanup EXIT INT TERM HUP ERR
-fi
+setup_cleanup
 
 check_dependencies
 prepare_image
@@ -62,4 +56,6 @@ else
 fi
 
 echo "[*] session exited, cleaning up..."
-cleanup
+if cleanup; then
+	clear_cleanup_traps
+fi

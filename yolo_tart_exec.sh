@@ -9,6 +9,15 @@ set -euo pipefail
 : ${RUNNER_IP:=""}
 : ${RUNNER_PROJECT_MOUNT:="/Volumes/My Shared Files/project"}
 
+setup_cleanup() {
+	echo "[*] setting up cleanup trap..."
+	trap cleanup EXIT INT TERM HUP
+}
+
+clear_cleanup_traps() {
+	trap - EXIT INT TERM HUP
+}
+
 check_dependencies() {
 	if ! command -v tart &>/dev/null; then
 		echo "[-] tart could not be found"
@@ -34,14 +43,58 @@ prepare_image() {
 }
 
 CLEANUP_DONE=false
+CLEANUP_IN_PROGRESS=false
+runner_image_exists() {
+	tart list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$RUNNER_IMAGE_NAME"
+}
+
 function cleanup {
-	if [ "$CLEANUP_DONE" = false ]; then
-		echo "[*] cleaning up..."
-		tart stop "$RUNNER_IMAGE_NAME" || true
-		sleep 1
-		tart delete "$RUNNER_IMAGE_NAME" || true
-		CLEANUP_DONE=true
+	if [ "$CLEANUP_DONE" = true ]; then
+		return 0
 	fi
+
+	if [ "$CLEANUP_IN_PROGRESS" = true ]; then
+		return 0
+	fi
+
+	CLEANUP_IN_PROGRESS=true
+	echo "[*] cleaning up runner image $RUNNER_IMAGE_NAME..."
+
+	if ! runner_image_exists; then
+		echo "[*] runner image $RUNNER_IMAGE_NAME already removed"
+		CLEANUP_DONE=true
+		CLEANUP_IN_PROGRESS=false
+		return 0
+	fi
+
+	tart stop "$RUNNER_IMAGE_NAME" &>/dev/null || true
+
+	local DELETE_ATTEMPT=1
+	local MAX_DELETE_ATTEMPTS=15
+	while [ $DELETE_ATTEMPT -le $MAX_DELETE_ATTEMPTS ]; do
+		if ! runner_image_exists; then
+			echo "[*] runner image $RUNNER_IMAGE_NAME is gone"
+			CLEANUP_DONE=true
+			CLEANUP_IN_PROGRESS=false
+			return 0
+		fi
+
+		if tart delete "$RUNNER_IMAGE_NAME" &>/dev/null; then
+			echo "[*] deleted runner image $RUNNER_IMAGE_NAME"
+			CLEANUP_DONE=true
+			CLEANUP_IN_PROGRESS=false
+			return 0
+		fi
+
+		echo "[*] runner image $RUNNER_IMAGE_NAME still busy, retrying delete ($DELETE_ATTEMPT/$MAX_DELETE_ATTEMPTS)..."
+		sleep 2
+		tart stop "$RUNNER_IMAGE_NAME" &>/dev/null || true
+		DELETE_ATTEMPT=$((DELETE_ATTEMPT + 1))
+	done
+
+	echo "[!] failed to delete runner image $RUNNER_IMAGE_NAME after $MAX_DELETE_ATTEMPTS attempts" >&2
+	CLEANUP_IN_PROGRESS=false
+	return 1
 }
 
 function execute_runner_command() {
