@@ -7,15 +7,41 @@ set -euo pipefail
 : ${RUNNER_USERNAME:="admin"}
 : ${RUNNER_PASSWORD:="admin"}
 : ${RUNNER_IP:=""}
+: ${TART_RUN_PID:=""}
 : ${RUNNER_PROJECT_MOUNT:="/Volumes/My Shared Files/project"}
+typeset -ga RUNNER_UPLOAD_EXCLUDES
+CLEANUP_ENABLED=false
 
 setup_cleanup() {
 	echo "[*] setting up cleanup trap..."
-	trap cleanup EXIT INT TERM HUP
+	CLEANUP_ENABLED=true
+	trap handle_interrupt INT TERM HUP
 }
 
 clear_cleanup_traps() {
-	trap - EXIT INT TERM HUP
+	CLEANUP_ENABLED=false
+	trap - INT TERM HUP
+}
+
+TRAPEXIT() {
+	if [ "${CLEANUP_ENABLED}" = true ]; then
+		cleanup || true
+	fi
+}
+
+TRAPZERR() {
+	local EXIT_CODE=$?
+	if [ "${CLEANUP_ENABLED}" = true ]; then
+		cleanup || true
+	fi
+	return $EXIT_CODE
+}
+
+handle_interrupt() {
+	echo "[*] interrupt received, cleaning up..."
+	clear_cleanup_traps
+	cleanup || true
+	exit 130
 }
 
 check_dependencies() {
@@ -45,7 +71,7 @@ prepare_image() {
 CLEANUP_DONE=false
 CLEANUP_IN_PROGRESS=false
 runner_image_exists() {
-	tart list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -Fxq "$RUNNER_IMAGE_NAME"
+	tart list 2>/dev/null | awk 'NR > 1 { print $2 }' | grep -Fxq "$RUNNER_IMAGE_NAME"
 }
 
 function cleanup {
@@ -65,6 +91,13 @@ function cleanup {
 		CLEANUP_DONE=true
 		CLEANUP_IN_PROGRESS=false
 		return 0
+	fi
+
+	if [ -n "${TART_RUN_PID}" ] && kill -0 "$TART_RUN_PID" 2>/dev/null; then
+		echo "[*] stopping tart run process $TART_RUN_PID..."
+		kill "$TART_RUN_PID" 2>/dev/null || true
+		wait "$TART_RUN_PID" 2>/dev/null || true
+		TART_RUN_PID=""
 	fi
 
 	tart stop "$RUNNER_IMAGE_NAME" &>/dev/null || true
@@ -129,6 +162,7 @@ function execute_runner_upload_batch() {
 	local DEST_BASE="$1"
 	shift
 	local FILES_TO_TAR=()
+	local TAR_ARGS=()
 	for SRC in "$@"; do
 		if [ -e "$SRC" ]; then
 			# Get path relative to $HOME
@@ -145,7 +179,14 @@ function execute_runner_upload_batch() {
 
 	local TAR_FILE="/tmp/yolo_upload_$$.tar.gz"
 	echo "[*] creating archive with ${#FILES_TO_TAR[@]} item(s)..."
-	tar -czf "$TAR_FILE" -C "$HOME" "${FILES_TO_TAR[@]}"
+	if [ ${#RUNNER_UPLOAD_EXCLUDES[@]} -gt 0 ]; then
+		local EXCLUDE
+		echo "[*] excluding ${#RUNNER_UPLOAD_EXCLUDES[@]} path(s) from archive..."
+		for EXCLUDE in "${RUNNER_UPLOAD_EXCLUDES[@]}"; do
+			TAR_ARGS+=("--exclude=$EXCLUDE")
+		done
+	fi
+	tar -czf "$TAR_FILE" "${TAR_ARGS[@]}" -C "$HOME" "${FILES_TO_TAR[@]}"
 
 	echo "[*] uploading archive to VM..."
 	sshpass -p "$RUNNER_PASSWORD" \
@@ -183,7 +224,7 @@ ${ENV_EXPORTS}ENVEOF"
 }
 
 start_vm() {
-	local MOUNT_PATH="${MOUNT_DIR:-$(pwd)}"
+	local MOUNT_PATH="${MOUNT_PROJECT:-$(pwd)}"
 	echo "[*] starting runner image, mounting dir $MOUNT_PATH..."
 
 	if ! tart list | grep -q "$RUNNER_IMAGE_NAME"; then
@@ -196,6 +237,7 @@ start_vm() {
 		--no-audio \
 		--no-clipboard \
 		& # detach
+	TART_RUN_PID=$!
 
 	echo "[*] waiting for runner image to start..."
 	RUNNER_BOOT_ATTEMPTS=0

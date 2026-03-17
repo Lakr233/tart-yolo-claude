@@ -11,6 +11,24 @@ fi
 export TART_IMAGE="tart_yolo_base"
 export RUNNER_IMAGE_NAME="yolo-claude-runner-${RANDOM}"
 export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
+RUNNER_UPLOAD_EXCLUDES=(
+	".claude/backups"
+	".claude/debug"
+	".claude/downloads"
+	".claude/file-history"
+	".claude/history.jsonl"
+	".claude/ide"
+	".claude/paste-cache"
+	".claude/plans"
+	".claude/projects"
+	".claude/session-env"
+	".claude/shell-snapshots"
+	".claude/statsig"
+	".claude/tasks"
+	".claude/telemetry"
+	".claude/todos"
+	".claude/transcripts"
+)
 
 vm_bootstrap() {
 	echo "[*] uploading claude configuration..."

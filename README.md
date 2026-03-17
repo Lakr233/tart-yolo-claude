@@ -32,9 +32,11 @@ yolo_opencode.sh  # OpenCode (OPENCODE_YOLO=true)
 yolo_zsh.sh       # Plain zsh shell in VM
 ```
 
-Each script clones an ephemeral VM from the base image, mounts your current directory at `~/project`, uploads configuration files and API keys, then launches the tool. When the tool exits (including Ctrl+C), you drop into an interactive zsh shell inside the VM instead of tearing it down — exit the shell to clean up.
+Each script clones an ephemeral VM from the base image, mounts your current directory at `~/project`, uploads configuration files and API keys, then launches the tool. When the tool exits, you drop into an interactive zsh shell inside the VM instead of tearing it down — exit the shell to clean up. Pressing Ctrl+C during startup now aborts the script and cleans up the runner VM.
 
 Environment variables matching `*API_KEY*` are automatically forwarded to the VM.
+
+Launcher-specific upload filters exclude bulky local state such as Claude/Codex session history and temporary directories so startup does not spend time tarring hundreds of megabytes of local artifacts.
 
 ## Scripts Overview
 

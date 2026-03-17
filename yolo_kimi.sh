@@ -11,6 +11,11 @@ fi
 export TART_IMAGE="tart_yolo_base"
 export RUNNER_IMAGE_NAME="yolo-kimi-runner-${RANDOM}"
 export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
+RUNNER_UPLOAD_EXCLUDES=(
+	".kimi/logs"
+	".kimi/sessions"
+	".kimi/user-history"
+)
 
 vm_bootstrap() {
 	echo "[*] uploading kimi configuration..."

@@ -11,6 +11,12 @@ fi
 export TART_IMAGE="tart_yolo_base"
 export RUNNER_IMAGE_NAME="yolo-opencode-runner-${RANDOM}"
 export MOUNT_PROJECT="${MOUNT_PROJECT:-$(pwd)}"
+RUNNER_UPLOAD_EXCLUDES=(
+	".opencode/history"
+	".opencode/logs"
+	".opencode/sessions"
+	".opencode/tmp"
+)
 
 vm_bootstrap() {
 	echo "[*] uploading opencode configuration..."
