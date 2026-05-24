@@ -1,68 +1,58 @@
-# Tart YOLO Scripts
+# Tart YOLO
 
-A collection of scripts to run AI coding assistants in sandboxed macOS VMs using [Tart](https://github.com/cirruslabs/tart) virtualization.
+Run a disposable macOS Tart VM for AI coding tools.
 
 ## Requirements
 
-- macOS host (Apple Silicon)
-- [Tart](https://github.com/cirruslabs/tart) installed
-- `sshpass` installed (`brew install hudochenkov/sshpass/sshpass`)
-- API keys for respective services (e.g., `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`)
-
-## Installation
-
-Run the install script to copy all scripts to `/usr/local/bin`:
+- macOS host on Apple Silicon
+- [Tart](https://github.com/cirruslabs/tart)
+- `sshpass` from Homebrew
 
 ```bash
-./install.sh
+brew install hudochenkov/sshpass/sshpass
 ```
-
-Then run `yolo_tart_prepare.sh` once to build the base macOS image. This pulls the latest macOS Tahoe image with Xcode pre-installed and runs initial tool setup.
 
 ## Usage
 
 From any project directory:
 
 ```bash
-yolo_claude.sh    # Claude Code (--dangerously-skip-permissions)
-yolo_codex.sh     # OpenAI Codex (--yolo)
-yolo_gemini.sh    # Google Gemini CLI (--yolo)
-yolo_kimi.sh      # Kimi CLI (--yolo)
-yolo_opencode.sh  # OpenCode (OPENCODE_YOLO=true)
-yolo_zsh.sh       # Plain zsh shell in VM
+./yolo.sh
 ```
 
-Each script clones an ephemeral VM from the base image, mounts your current directory at `~/project`, uploads configuration files and API keys, then launches the tool. When the tool exits, you drop into an interactive zsh shell inside the VM instead of tearing it down — exit the shell to clean up. Pressing Ctrl+C during startup now aborts the script and cleans up the runner VM.
+The script uses the current directory as the project mount, prepares `tart_yolo_base` when it is missing, clones a disposable runner VM, uploads tool configuration files, and opens a `zsh` shell at `~/project`.
 
-Environment variables matching `*API_KEY*` are automatically forwarded to the VM.
+Inside the VM, run the tool you need:
 
-Launcher-specific upload filters exclude bulky local state such as Claude/Codex session history and temporary directories so startup does not spend time tarring hundreds of megabytes of local artifacts.
+```bash
+claude --dangerously-skip-permissions
+codex --yolo
+```
 
-## Scripts Overview
+The runner VM is deleted when the shell exits.
 
-- `install.sh` — Installs scripts to `/usr/local/bin`
-- `yolo_tart_prepare.sh` — One-time base image preparation
-- `yolo_tart_exec.sh` — Shared VM lifecycle utilities (start, upload, cleanup)
-- `yolo_vm_init.sh` — Tool installation inside the VM
-- `yolo_zsh.sh` — Generic VM launcher
-- `yolo_claude.sh` — Claude Code launcher
-- `yolo_codex.sh` — Codex launcher
-- `yolo_gemini.sh` — Gemini CLI launcher
-- `yolo_kimi.sh` — Kimi CLI launcher
-- `yolo_opencode.sh` — OpenCode launcher
-- `yolo_usage.py` — API usage statistics checker
+## Configuration Upload
 
-## How Bootstrap Works
+`yolo.sh` uploads an explicit whitelist of authentication and configuration files. The whitelist contains Claude and Codex files only.
 
-Configuration files (e.g., `~/.claude`, `~/.claude.json`) are tarred locally, transferred as a single archive via SCP, and extracted on the VM. API keys are batched into one SSH call. This minimizes SSH connection overhead during boot.
+Current whitelist:
 
-## Pre-installed Tools (via `yolo_vm_init.sh`)
+```text
+~/.claude.json
+~/.claude/settings.json
+~/.claude/mcp-needs-auth-cache.json
+~/.codex/auth.json
+~/.codex/config.toml
+~/.codex/.codex-global-state.json
+~/.codex/AGENTS.md
+~/.codex/installation_id
+~/.codex/models_cache.json
+```
 
-Homebrew packages: git, curl, wget, htop, vim, nano, jq, yq, coreutils, python@3.13, node, uv, swiftformat, xcbeautify
+## Installed Tools
 
-AI CLIs:
-- **Claude Code** — native installer (`claude.ai/install.sh`)
-- **OpenCode** — native installer (`opencode.ai/install`)
-- **Codex, Gemini CLI** — via pnpm (`@openai/codex`, `@google/gemini-cli`)
-- **Kimi CLI** — via uv (`kimi-cli`, Python 3.13)
-- **ralph-claude-code** — cloned from GitHub
+The base image setup installs:
+
+- Homebrew packages: `git`, `curl`, `wget`, `htop`, `vim`, `nano`, `jq`, `yq`, `coreutils`, `tmux`, `python@3.13`, `swiftformat`, `xcbeautify`, `node`
+- Claude Code
+- Codex CLI
