@@ -11,6 +11,7 @@ readonly RUNNER_HOME="/Users/admin"
 readonly RUNNER_PROJECT_MOUNT="/Volumes/My Shared Files/project"
 readonly RUNNER_DISPLAY="1366x768px"
 
+SCRIPT_NAME="${0:t}"
 PROJECT_DIR="$(pwd)"
 RUNNER_IP=""
 TART_RUN_PID=""
@@ -20,10 +21,39 @@ CLEANUP_IN_PROGRESS=false
 EXIT_CODE=0
 
 main() {
-	require_zero_arguments "$@"
 	setup_cleanup_traps
 	check_dependencies
-	prepare_base_image
+
+	case "$#" in
+		0)
+			run_runner
+			;;
+		1)
+			run_command "$1"
+			;;
+		*)
+			print_usage
+			exit 2
+			;;
+	esac
+}
+
+run_command() {
+	local command_name="$1"
+
+	case "$command_name" in
+		prepare)
+			rebuild_base_image
+			;;
+		*)
+			print_usage
+			exit 2
+			;;
+	esac
+}
+
+run_runner() {
+	ensure_base_image
 	prepare_runner_image
 	start_runner
 	link_project_directory
@@ -31,13 +61,8 @@ main() {
 	open_runner_shell
 }
 
-require_zero_arguments() {
-	if [ "$#" -eq 0 ]; then
-		return
-	fi
-
-	echo "Usage: yolo.sh" >&2
-	exit 2
+print_usage() {
+	echo "Usage: $SCRIPT_NAME [prepare]" >&2
 }
 
 check_dependencies() {
@@ -58,12 +83,31 @@ require_command() {
 	exit 1
 }
 
-prepare_base_image() {
+ensure_base_image() {
 	if local_tart_image_exists "$BASE_IMAGE"; then
 		return
 	fi
 
-	echo "[*] base image missing; preparing $BASE_IMAGE..."
+	create_base_image
+}
+
+rebuild_base_image() {
+	delete_base_image
+	create_base_image
+}
+
+delete_base_image() {
+	if ! local_tart_image_exists "$BASE_IMAGE"; then
+		return
+	fi
+
+	echo "[*] deleting existing base image: $BASE_IMAGE"
+	tart stop "$BASE_IMAGE" >/dev/null 2>&1 || true
+	tart delete "$BASE_IMAGE"
+}
+
+create_base_image() {
+	echo "[*] preparing base image: $BASE_IMAGE"
 	pull_source_image
 	tart clone "$SOURCE_IMAGE" "$BASE_IMAGE"
 	tart set "$BASE_IMAGE" --display "$RUNNER_DISPLAY" --no-display-refit

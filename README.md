@@ -32,6 +32,12 @@ Then run it from any project directory:
 yolo
 ```
 
+Prepare or refresh the base image manually:
+
+```bash
+yolo prepare
+```
+
 The script uses the current directory as the project mount, prepares `tart_yolo_base` when it is missing, clones a disposable runner VM, uploads tool configuration files, and opens a `zsh` shell at `~/project`.
 
 Inside the VM, run the tool you need:
