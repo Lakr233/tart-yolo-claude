@@ -17,6 +17,7 @@ TART_RUN_PID=""
 ACTIVE_IMAGE=""
 CLEANUP_DONE=false
 CLEANUP_IN_PROGRESS=false
+EXIT_CODE=0
 
 main() {
 	require_zero_arguments "$@"
@@ -95,12 +96,19 @@ tart_image_exists() {
 
 boot_base_image_for_setup() {
 	echo "[*] starting base image for setup..."
-	tart run "$BASE_IMAGE" --no-audio --no-clipboard &
-	TART_RUN_PID=$!
-	ACTIVE_IMAGE="$BASE_IMAGE"
+	start_tart_run "$BASE_IMAGE" --no-audio --no-clipboard
 
 	wait_for_runner_ip "$BASE_IMAGE"
 	wait_for_ssh
+}
+
+start_tart_run() {
+	local image_name="$1"
+	shift
+
+	zsh -c 'trap "" INT; exec "$@"' tart-run tart run "$image_name" "$@" &
+	TART_RUN_PID=$!
+	ACTIVE_IMAGE="$image_name"
 }
 
 install_runner_tools() {
@@ -123,18 +131,59 @@ prepare_runner_image() {
 	echo "[*] cloning runner image: $RUNNER_IMAGE"
 	tart clone "$BASE_IMAGE" "$RUNNER_IMAGE"
 	tart set "$RUNNER_IMAGE" --display "$RUNNER_DISPLAY" --no-display-refit
+	start_delete_guard
+}
+
+start_delete_guard() {
+	local parent_pid="$$"
+	local tart_bin
+	tart_bin="$(command -v tart)"
+
+	nohup zsh -c '
+		trap "" INT TERM HUP
+
+		runner_image="$1"
+		parent_pid="$2"
+		tart_bin="$3"
+
+		while kill -0 "$parent_pid" 2>/dev/null; do
+			sleep 1
+		done
+
+		"$tart_bin" stop "$runner_image" >/dev/null 2>&1 || true
+
+		attempt=1
+		while [ "$attempt" -le 15 ]; do
+			"$tart_bin" delete "$runner_image" >/dev/null 2>&1 && exit 0
+			"$tart_bin" list 2>/dev/null | awk "NR > 1 { print \$2 }" | grep -Fxq "$runner_image" || exit 0
+			sleep 2
+			attempt=$((attempt + 1))
+		done
+	' yolo-delete-guard "$RUNNER_IMAGE" "$parent_pid" "$tart_bin" >/dev/null 2>&1 &
 }
 
 setup_cleanup_traps() {
 	trap 'handle_interrupt' INT TERM HUP
-	trap 'cleanup || true' EXIT
 }
 
 handle_interrupt() {
 	echo "[*] interrupt received; cleaning up..."
-	trap - INT TERM HUP EXIT
+	EXIT_CODE=130
+	trap '' INT TERM HUP
 	cleanup || true
-	exit 130
+	exit "$EXIT_CODE"
+}
+
+TRAPEXIT() {
+	local exit_code=$?
+
+	if [ "$EXIT_CODE" -ne 0 ]; then
+		exit_code="$EXIT_CODE"
+	fi
+
+	trap '' INT TERM HUP
+	cleanup || true
+	return "$exit_code"
 }
 
 cleanup() {
@@ -169,21 +218,22 @@ stop_active_vm() {
 }
 
 delete_runner_image() {
-	if ! local_tart_image_exists "$RUNNER_IMAGE"; then
-		return
-	fi
-
 	local attempt=1
 	local max_attempts=15
 
 	while [ "$attempt" -le "$max_attempts" ]; do
+		tart stop "$RUNNER_IMAGE" >/dev/null 2>&1 || true
+
 		if tart delete "$RUNNER_IMAGE" >/dev/null 2>&1; then
 			echo "[*] deleted runner image: $RUNNER_IMAGE"
 			return
 		fi
 
+		if ! local_tart_image_exists "$RUNNER_IMAGE"; then
+			return
+		fi
+
 		echo "[*] runner image busy; retrying delete ($attempt/$max_attempts)..."
-		tart stop "$RUNNER_IMAGE" >/dev/null 2>&1 || true
 		sleep 2
 		attempt=$((attempt + 1))
 	done
@@ -194,13 +244,10 @@ delete_runner_image() {
 
 start_runner() {
 	echo "[*] starting runner image, mounting $PROJECT_DIR..."
-	tart run "$RUNNER_IMAGE" \
+	start_tart_run "$RUNNER_IMAGE" \
 		--dir=project:"$PROJECT_DIR" \
 		--no-audio \
-		--no-clipboard \
-		&
-	TART_RUN_PID=$!
-	ACTIVE_IMAGE="$RUNNER_IMAGE"
+		--no-clipboard
 
 	wait_for_runner_ip "$RUNNER_IMAGE"
 	wait_for_ssh

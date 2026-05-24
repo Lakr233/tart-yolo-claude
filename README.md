@@ -20,6 +20,18 @@ From any project directory:
 ./yolo.sh
 ```
 
+To install it globally:
+
+```bash
+sudo install -m 755 yolo.sh /usr/local/bin/yolo
+```
+
+Then run it from any project directory:
+
+```bash
+yolo
+```
+
 The script uses the current directory as the project mount, prepares `tart_yolo_base` when it is missing, clones a disposable runner VM, uploads tool configuration files, and opens a `zsh` shell at `~/project`.
 
 Inside the VM, run the tool you need:
