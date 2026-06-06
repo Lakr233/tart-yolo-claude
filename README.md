@@ -51,7 +51,7 @@ The runner VM is deleted when the shell exits.
 
 ## Configuration Upload
 
-`yolo.sh` uploads an explicit whitelist of authentication and configuration files. The whitelist contains Claude and Codex files only.
+`yolo.sh` uploads an explicit whitelist of authentication and configuration files. The whitelist contains Claude and Codex files only. It also copies the Claude Code macOS Keychain OAuth item into the VM under the VM user account.
 
 Current whitelist:
 
@@ -65,6 +65,7 @@ Current whitelist:
 ~/.codex/AGENTS.md
 ~/.codex/installation_id
 ~/.codex/models_cache.json
+macOS Keychain: account=<vm user>, service=Claude Code-credentials
 ```
 
 ## Installed Tools

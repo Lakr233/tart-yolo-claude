@@ -10,6 +10,7 @@ readonly RUNNER_PASSWORD="admin"
 readonly RUNNER_HOME="/Users/admin"
 readonly RUNNER_PROJECT_MOUNT="/Volumes/My Shared Files/project"
 readonly RUNNER_DISPLAY="1366x768px"
+readonly CLAUDE_KEYCHAIN_SERVICE="Claude Code-credentials"
 
 SCRIPT_NAME="${0:t}"
 PROJECT_DIR="$(pwd)"
@@ -70,6 +71,7 @@ check_dependencies() {
 	require_command sshpass
 	require_command tar
 	require_command dscl
+	require_command security
 }
 
 require_command() {
@@ -352,6 +354,64 @@ upload_tool_configuration() {
 		".codex/AGENTS.md" \
 		".codex/installation_id" \
 		".codex/models_cache.json"
+
+	upload_claude_keychain_credentials
+}
+
+upload_claude_keychain_credentials() {
+	local source_account
+	local payload_path
+	local remote_payload_path
+
+	source_account="$(id -un)"
+	payload_path="$(mktemp)"
+	remote_payload_path="/tmp/yolo_claude_keychain_credentials_$$.json"
+
+	if ! security find-generic-password -a "$source_account" -w -s "$CLAUDE_KEYCHAIN_SERVICE" >"$payload_path" 2>/dev/null; then
+		rm -f "$payload_path"
+		echo "[*] no Claude Code keychain credentials found"
+		return
+	fi
+
+	echo "[*] uploading Claude Code keychain credentials..."
+	chmod 600 "$payload_path"
+
+	{
+		sshpass -p "$RUNNER_PASSWORD" \
+			scp "${SCP_OPTIONS[@]}" \
+			"$payload_path" \
+			"$RUNNER_USERNAME@$RUNNER_IP:$remote_payload_path"
+
+		sshpass -p "$RUNNER_PASSWORD" \
+			ssh "${SSH_OPTIONS[@]}" \
+			"$RUNNER_USERNAME@$RUNNER_IP" \
+			"zsh -s -- '$remote_payload_path' '$CLAUDE_KEYCHAIN_SERVICE' '$RUNNER_PASSWORD'" <<'IMPORT_CLAUDE_KEYCHAIN'
+set -euo pipefail
+
+remote_payload_path="$1"
+service="$2"
+runner_password="$3"
+account="$(id -un)"
+payload="$(cat "$remote_payload_path")"
+rm -f "$remote_payload_path"
+
+if [ -z "$payload" ]; then
+	echo "[-] Claude Code keychain credential payload is empty" >&2
+	exit 1
+fi
+
+security unlock-keychain -p "$runner_password" "$HOME/Library/Keychains/login.keychain-db" >/dev/null 2>&1 || true
+security add-generic-password -U -a "$account" -s "$service" -w "$payload" >/dev/null
+
+if [ -z "$(security find-generic-password -a "$account" -w -s "$service")" ]; then
+	echo "[-] failed to store Claude Code keychain credential payload" >&2
+	exit 1
+fi
+IMPORT_CLAUDE_KEYCHAIN
+	} always {
+		rm -f "$payload_path"
+		execute_runner_command "rm -f '$remote_payload_path'" >/dev/null 2>&1 || true
+	}
 }
 
 current_user_home() {
@@ -412,7 +472,7 @@ upload_tar_archive() {
 
 open_runner_shell() {
 	echo "[*] opening runner shell..."
-	execute_runner_command "cd ~/project && exec zsh -l"
+	execute_runner_command "security unlock-keychain -p '$RUNNER_PASSWORD' ~/Library/Keychains/login.keychain-db >/dev/null 2>&1 || true; cd ~/project && exec zsh -l"
 	trap - EXIT INT TERM HUP
 	cleanup
 }
