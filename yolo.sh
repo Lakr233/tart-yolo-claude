@@ -466,6 +466,7 @@ ensure_line_in_file 'export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH' "$H
 ensure_line_in_file 'export PATH=$HOME/.local/bin:$PATH' "$HOME/.zshenv"
 ensure_line_in_file 'export PNPM_HOME=$HOME/Library/pnpm' "$HOME/.zshenv"
 ensure_line_in_file 'export PATH=$PNPM_HOME:$PATH' "$HOME/.zshenv"
+ensure_line_in_file 'export PATH=$HOME/.local/bin:$PATH' "$HOME/.zprofile"
 
 source "$HOME/.zshenv"
 
@@ -533,9 +534,15 @@ esac
 
 echo "[*] installing Claude Code..."
 curl -fsSL https://claude.ai/install.sh | bash
+claude --version
 
 echo "[*] installing Codex CLI..."
-pnpm add -g @openai/codex@latest
+CODEX_TMP_DIR="$(mktemp -d)"
+curl -fsSL https://github.com/openai/codex/releases/latest/download/codex-aarch64-apple-darwin.tar.gz -o "$CODEX_TMP_DIR/codex.tar.gz"
+tar -xzf "$CODEX_TMP_DIR/codex.tar.gz" -C "$CODEX_TMP_DIR"
+install -m 755 "$CODEX_TMP_DIR/codex-aarch64-apple-darwin" "$HOME/.local/bin/codex"
+rm -rf "$CODEX_TMP_DIR"
+codex --version
 
 echo "[*] cleaning up..."
 brew cleanup || true
